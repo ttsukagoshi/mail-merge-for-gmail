@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Default configurations
+const CONFIG = {
+  DATA_SHEET_NAME: 'List',
+  RECIPIENT_COL_NAME: 'Email',
+  BCC_TO_MYSELF: true,
+  REPLACE_VALUE: 'NA',
+  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
+  ENABLE_NESTED_MERGE: false,
+  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g
+}
+
 // Add spreadsheet menu
 function onOpen() {
   let ui = SpreadsheetApp.getUi();
@@ -59,11 +70,6 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var mergeData = mergeDataRange.getValues();
   //// Define first row of mergeData as header
   var header = mergeData.shift();
-
-
-
-  ///////////////////////////////ここの代わりに
-  
   //// Convert 2d array of mergeData into object array
   var mergeDataObjArr = mergeData.map(function (values) {
     return header.reduce(function (object, key, index) {
@@ -71,8 +77,8 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       return object;
     }, {});
   })
-  
-  ///////////////////////////////
+  //// Convert the object array into object grouped by recipient(s)
+  var mergeDataGrouped = groupBy_(mergeDataObjArr, config.RECIPIENT_COL_NAME);
 
   try {
     // Confirmation before sending email
@@ -106,7 +112,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     };
 
     // Send or create draft of personalized email
-    mergeDataObjArr.forEach(function(element){
+    mergeDataObjArr.forEach(function (element) {
       let messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
       let options = {
         'htmlBody': messageData.htmlBody,
@@ -116,6 +122,12 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         ? GmailApp.createDraft(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options)
         : GmailApp.sendEmail(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
     });
+    //////////////////////////////////
+    for (let k in mergeDataGrouped) {
+      
+    }
+
+    // Notification
     let completeMessage = (draftMode === true
       ? 'Complete: All draft(s) created.'
       : 'Complete: All mails sent.');
@@ -161,6 +173,24 @@ function getConfig_(configSheetName = 'Config') {
  */
 function toBoolean_(stringBoolean) {
   return stringBoolean.toLowerCase === 'true';
+}
+
+/**
+ * Group objects by a property 
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
+ * @param {array} objectArray Array of objects
+ * @param {string} property Property to group object by
+ * @return {Object}
+ */
+function groupBy_(objectArray, property) {
+  return objectArray.reduce(function (acc, obj) {
+    let key = obj[property];
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(obj);
+    return acc;
+  }, {})
 }
 
 /**
@@ -214,15 +244,4 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
 function errorMessage_(e) {
   let message = `Error: line - ${e.lineNumber}\n[${e.name}] ${e.message}\n${e.stack}`
   return message;
-}
-
-// Default configurations
-const CONFIG = {
-  DATA_SHEET_NAME: 'List',
-  RECIPIENT_COL_NAME: 'Email',
-  BCC_TO_MYSELF: true,
-  REPLACE_VALUE: 'NA',
-  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
-  ENABLE_NESTED_MERGE: false,
-  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g
 }
