@@ -59,13 +59,20 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var mergeData = mergeDataRange.getValues();
   //// Define first row of mergeData as header
   var header = mergeData.shift();
+
+
+
+  ///////////////////////////////ここの代わりに
+  
   //// Convert 2d array of mergeData into object array
-  var mergeDataObj = mergeData.map(function (values) {
+  var mergeDataObjArr = mergeData.map(function (values) {
     return header.reduce(function (object, key, index) {
       object[key] = values[index];
       return object;
     }, {});
   })
+  
+  ///////////////////////////////
 
   try {
     // Confirmation before sending email
@@ -92,16 +99,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     if (draftMessage.length > 1) {
       throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
     }
-    var template = {
+    let template = {
       'subject': subjectText,
       'plainBody': draftMessage[0].getPlainBody(),
       'htmlBody': draftMessage[0].getBody()
     };
 
     // Send or create draft of personalized email
-    mergeDataObj.forEach((element, i) => {
-      var messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
-      var options = {
+    mergeDataObjArr.forEach(function(element){
+      let messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
+      let options = {
         'htmlBody': messageData.htmlBody,
         'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
       };
