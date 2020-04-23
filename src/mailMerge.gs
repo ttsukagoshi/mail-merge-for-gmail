@@ -1,3 +1,17 @@
+// Copyright 2020 Taro TSUKAGOSHI
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Add spreadsheet menu
 function onOpen() {
   let ui = SpreadsheetApp.getUi();
@@ -13,7 +27,7 @@ function onOpen() {
  */
 function sendEmails() {
   const draftMode = false;
-  const config = getConfig_('Config');
+  const config = getConfig_();
   sendPersonalizedEmails_(draftMode, config);
 }
 
@@ -22,7 +36,7 @@ function sendEmails() {
  */
 function createDraftEmails() {
   const draftMode = true;
-  const config = getConfig_('Config');
+  const config = getConfig_();
   sendPersonalizedEmails_(draftMode, config);
 }
 
@@ -32,7 +46,7 @@ function createDraftEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails_(draftMode = true, config) {
+function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
@@ -193,4 +207,15 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
 function errorMessage_(e) {
   let message = `Error: line - ${e.lineNumber}\n[${e.name}] ${e.message}\n${e.stack}`
   return message;
+}
+
+// Default configurations
+const CONFIG = {
+  DATA_SHEET_NAME: 'List',
+  RECIPIENT_COL_NAME: 'Email',
+  BCC_TO_MYSELF: true,
+  REPLACE_VALUE: 'NA',
+  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
+  ENABLE_NESTED_MERGE: false,
+  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g
 }
