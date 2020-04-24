@@ -70,6 +70,8 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var mergeData = mergeDataRange.getValues();
   //// Define first row of mergeData as header
   var header = mergeData.shift();
+
+  //// Can this be simplified????
   //// Convert 2d array of mergeData into object array
   var mergeDataObjArr = mergeData.map(function (values) {
     return header.reduce(function (object, key, index) {
@@ -124,6 +126,14 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     });
     //////////////////////////////////
     for (let k in mergeDataGrouped) {
+      ////// if ENABLE_NESTED_MERGE is true
+      // take out the nested marker
+      // fill it in
+      // return the filled-in marker to its original place
+      // replace fields of the whole text with mergeDataGrouped[k][0]
+      ////// if ENABLE_NESTED_MERGE is false
+      // replace fields of the whole text with row-by-row contents of mergeDataGrouped[k]
+      let groupedData = mergeDataGrouped[k];
       
     }
 
