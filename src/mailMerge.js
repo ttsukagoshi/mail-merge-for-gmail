@@ -186,6 +186,51 @@ function toBoolean_(stringBoolean) {
 }
 
 /**
+ * Create a Javascript object from a 2d array, grouped by a given property.
+ * If the designated property is not included in the header, this function will return an empty object.
+ * @param {array} data 2-dimensional array with a header as its first row.
+ * @param {string} property Name of field name in header to group by.
+ */
+function groupArray_(data, property) {
+  let header = data.shift();
+  let index = header.indexOf(property);
+  console.log(header);////////////////////
+  console.log(data);///////////////////
+  if (index < 0) {
+    return {}; // return an empty object if the designated property is not included in the header
+  } else {
+    let groupedObj = data.reduce(
+      function (accObj, curArr) {
+        let key = curArr[index];
+        if (!accObj[key]) {
+          accObj[key] = [];
+        }
+        let rowObj = createObj_(header, curArr);
+        accObj[key].push(rowObj);
+        return accObj;
+      }, {});
+    return groupedObj;
+  }
+}
+
+/**
+ * Create a Javascript object from a set of keys and values
+ * i.e., where keys = [key0, key1, ..., key[n]] and values = [value0, value1, ..., value[n]],
+ * this function will return an object = {key0: value0, ..., key[n]: value[n]}
+ * @param {array} keys 
+ * @param {array} values
+ * @return {Object} 
+ */
+function createObj_(keys, values) {
+  let obj = {};
+  for (let i = 0; i < keys.length; ++i) {
+    obj[keys[i]] = values[i];
+  }
+  return obj;
+}
+
+// getConfig_() to be depreciated//////////////////////////////////////
+/**
  * Group objects by a property 
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
  * @param {array} objectArray Array of objects
