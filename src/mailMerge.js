@@ -194,10 +194,9 @@ function toBoolean_(stringBoolean) {
 function groupArray_(data, property) {
   let header = data.shift();
   let index = header.indexOf(property);
-  console.log(header);////////////////////
-  console.log(data);///////////////////
   if (index < 0) {
     return {}; // return an empty object if the designated property is not included in the header
+    ////////// return an error message instead??
   } else {
     let groupedObj = data.reduce(
       function (accObj, curArr) {
