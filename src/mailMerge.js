@@ -68,10 +68,12 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
   //// Get data
   var mergeData = mergeDataRange.getValues();
+  //// Convert the object array into object grouped by recipient(s)
+  var mergeDataGrouped = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
+
+  //////////////////////////////////////////////////// to be depreciated
   //// Define first row of mergeData as header
   var header = mergeData.shift();
-
-  //// Can this be simplified????
   //// Convert 2d array of mergeData into object array
   var mergeDataObjArr = mergeData.map(function (values) {
     return header.reduce(function (object, key, index) {
@@ -79,9 +81,8 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       return object;
     }, {});
   })
-  //// Convert the object array into object grouped by recipient(s)
-  var mergeDataGrouped = groupBy_(mergeDataObjArr, config.RECIPIENT_COL_NAME);
-
+  /////////////////////////////////////////////////////
+  
   try {
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
@@ -90,6 +91,11 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
       throw new Error('Canceled.');
+    }
+
+    // Validity check
+    if (mergeDataGrouped[invalidProperty] === 'Invalid Property Name') {
+      throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
     }
 
     // Email Template
@@ -187,7 +193,7 @@ function toBoolean_(stringBoolean) {
 
 /**
  * Create a Javascript object from a 2d array, grouped by a given property.
- * If the designated property is not included in the header, this function will return an empty object.
+ * If the designated property is not included in the header, this function will return an invalidProperty object.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property Name of field name in header to group by.
  */
@@ -195,8 +201,10 @@ function groupArray_(data, property) {
   let header = data.shift();
   let index = header.indexOf(property);
   if (index < 0) {
-    return {}; // return an empty object if the designated property is not included in the header
-    ////////// return an error message instead??
+    let invalidProperty = {
+      'invalidProperty': 'Invalid Property Name'
+    };
+    return invalidProperty;
   } else {
     let groupedObj = data.reduce(
       function (accObj, curArr) {
@@ -228,7 +236,7 @@ function createObj_(keys, values) {
   return obj;
 }
 
-// getConfig_() to be depreciated//////////////////////////////////////
+// groupBy_() to be depreciated//////////////////////////////////////
 /**
  * Group objects by a property 
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
