@@ -68,9 +68,12 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
   //// Get data in 2d array
   var mergeData = mergeDataRange.getValues();
+
+  /*
   // Convert the 2d-array merge data into object grouped by recipient(s)
   var mergeDataGrouped = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
   console.log(mergeDataGrouped)///////////////////////
+  */
 
   //////////////////////////////////////////////////// to be depreciated
   //// Define first row of mergeData as header
@@ -93,11 +96,12 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     if (answer !== ui.Button.OK) {
       throw new Error('Canceled.');
     }
-
+    /*
     // Validity check
-    if (mergeDataGrouped[invalidProperty] === 'Invalid Property Name') {
+    if (Object.keys(mergeDataGrouped).length == 0) {
       throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
     }
+    */
 
     // Email Template
     //// Prompt to enter the subject of the Gmail draft to use as template
@@ -133,6 +137,8 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         ? GmailApp.createDraft(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options)
         : GmailApp.sendEmail(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
     });
+
+    /*
     //////////////////////////////////
     for (let k in mergeDataGrouped) {
       let groupedData = mergeDataGrouped[k];
@@ -148,6 +154,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       }
 
     }
+    */
 
     // Notification
     let completeMessage = (draftMode === true
@@ -201,7 +208,7 @@ function toBoolean_(stringBoolean) {
 
 /**
  * Create a Javascript object from a 2d array, grouped by a given property.
- * If the designated property is not included in the header, this function will return an invalidProperty object.
+ * If the designated property is not included in the header, this function will return an empty object.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property Name of field name in header to group by.
  */
@@ -209,9 +216,7 @@ function groupArray_(data, property) {
   let header = data.shift();
   let index = header.indexOf(property);
   if (index < 0) {
-    let invalidProperty = {
-      'invalidProperty': 'Invalid Property Name'
-    };
+    let invalidProperty = {};
     return invalidProperty;
   } else {
     let groupedObj = data.reduce(
