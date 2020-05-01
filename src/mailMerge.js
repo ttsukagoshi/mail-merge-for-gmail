@@ -72,19 +72,19 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   // Convert the 2d-array merge data into object grouped by recipient(s)
   var mergeDataGrouped = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
   console.log(mergeDataGrouped)///////////////////////
-/*
-  //////////////////////////////////////////////////// to be depreciated
-  //// Define first row of mergeData as header
-  var header = mergeData.shift();
-  //// Convert 2d array of mergeData into object array
-  var mergeDataObjArr = mergeData.map(function (values) {
-    return header.reduce(function (object, key, index) {
-      object[key] = values[index];
-      return object;
-    }, {});
-  })
-  /////////////////////////////////////////////////////
-*/
+  /*
+    //////////////////////////////////////////////////// to be depreciated
+    //// Define first row of mergeData as header
+    var header = mergeData.shift();
+    //// Convert 2d array of mergeData into object array
+    var mergeDataObjArr = mergeData.map(function (values) {
+      return header.reduce(function (object, key, index) {
+        object[key] = values[index];
+        return object;
+      }, {});
+    })
+    /////////////////////////////////////////////////////
+  */
   try {
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
@@ -206,6 +206,7 @@ function toBoolean_(stringBoolean) {
  * If the designated property is not included in the header, this function will return an empty object.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property Name of field name in header to group by.
+ * @return {object}
  */
 function groupArray_(data, property) {
   let header = data.shift();
@@ -309,23 +310,51 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
 /**
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in mergeFieldMarker
- * @param {Object} mergeData Object with values to replace markers, as returned by groupArray_().
- * @param {string} mergeFieldMarker Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
- * @param {string} replaceValue String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
- * @param {boolean} enableNestedMerge Merged texts are returned in concatenated form when true. Defaults to false.
+ * @param {array} groupedData Array of objects with values to replace markers; a value in groupArray_().
+ * @param {string} replaceValue [Optional] String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
+ * @param {RegExp} mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
+ * @param {boolean} enableNestedMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
+ * @param {RegExp} nestedFieldMarker [Optional] Regular expression for the nested merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[nested merge]]
  * @return {Object} Returns object with markers replaced.
  */
-function fillInTemplate_(template, mergeData, mergeFieldMarker = /\{\{[^\}]+\}\}/g, replaceValue = 'NA', enableNestedMerge = false) {
+function fillInTemplate_(template, groupedData, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g) {
   let messageData = {};
   for (let k in template) {
     let text = '';
     text = template[k];
+    console.log(text);////////////////////////////
+
+    // Nested merge
+    if (enableNestedMerge === true) {
+      let nestedText = text.match(nestedFieldMarker);
+      let nestedTextMerged = nestedText.map(function (field) {
+        let fieldVars = field.match(mergeFieldMarker);
+        if (!fieldVars) {
+          // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
+          // assuming that the text length for opening and closing markers are 2 and 2, respectively
+          return field.substring(2, field.length - 2);
+        } else {
+          let fieldMerged = [];
+          /////////////////////////////////////////
+          fieldMerged.push('');
+          let fieldMergedText = fieldMerged.join('');
+          return fieldMergedText;
+        }
+      });
+      nestedText.forEach(
+        (nestedField, index) => text = text.replace(nestedField, nestedTextMerged[index] || replaceValue)
+      );
+    }
+    console.log(text);////////////////////////////
+
+    // merging the rest of the field
+    let mergeData = groupedData[0];
     // Search for all the variables to be replaced
     let textVars = text.match(mergeFieldMarker);
     if (!textVars) {
       messageData[k] = text; // return text itself if no marker is found
     } else {
-      // Get the text inside markers. e.g., {{field name}} => field name
+      // Get the text inside markers, e.g., {{field name}} => field name,
       // assuming that the text length for opening and closing markers are 2 and 2, respectively 
       let markerText = textVars.map(value => value.substring(2, value.length - 2));
       // Replace variables in textVars with the actual values from the data object.
@@ -338,6 +367,39 @@ function fillInTemplate_(template, mergeData, mergeFieldMarker = /\{\{[^\}]+\}\}
   }
   return messageData;
 }
+/*
+    // Search for all the variables to be replaced
+    let textVars = text.match(mergeFieldMarker);
+    if (!textVars) {
+      messageData[k] = text; // return text itself if no marker is found
+    } else {
+      // Get the text inside markers. e.g., {{field name}} => field name
+      // assuming that the text length for opening and closing markers are 2 and 2, respectively
+      let markerText = textVars.map(value => value.substring(2, value.length - 2));
+
+      for (let property in groupedData) {
+        let dataObjArr = groupedData[property];
+        // Set loop limit depending on parameter nestedMerge
+        let limit = (nestedMerge == true ? dataObjArr.length : 1);
+        console.log(`limit: ${limit}`);///////////////////////////
+
+        for (let i = 0; i < limit; ++i) {
+          let dataObj = dataObjArr[i];
+          let textArr = [];
+          // Replace variables in textVars with the actual values from the data object.
+          // If no value is available, replace with the string with replaceValue.
+          textVars.forEach(function (variable, j) {
+            textArr.push(text.replace(variable, dataObj[markerText[j]] || replaceValue));
+          });
+          console.log(textArr);//////////////////////////
+          let joinedText = textArr.join('');
+          console.log(`joinedText: ${joinedText}`);//////////////////////////
+        }
+
+        messageData[k] = joinedText;
+      }
+    }
+    */
 
 /**
  * Standarized error message
