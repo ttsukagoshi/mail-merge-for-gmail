@@ -20,7 +20,8 @@ const CONFIG = {
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_NESTED_MERGE: false,
-  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g
+  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
+  ROW_INDEX_MARKER: '<<i>>'
 }
 
 // Add spreadsheet menu
@@ -38,7 +39,7 @@ function onOpen() {
  */
 function sendEmails() {
   const draftMode = false;
-  const config = getConfig_();
+  const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
 
@@ -47,7 +48,7 @@ function sendEmails() {
  */
 function createDraftEmails() {
   const draftMode = true;
-  const config = getConfig_();
+  const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
 
@@ -125,17 +126,10 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       ///////////////////////////////////////////////////
 
     } else {
-      // Define first row of mergeData as header
-      let header = mergeData.shift();
-      // Convert 2d array of mergeData into object array
-      let mergeDataObjArr = mergeData.map(function (values) {
-        return header.reduce(function (object, key, index) {
-          object[key] = values[index];
-          return object;
-        }, {});
-      })
+      // Convert the 2d-array merge data into object
+      let groupedMergeData = groupArray_(mergeData);
       // Send or create draft of personalized email////////////////////////////
-      mergeDataObjArr.forEach(function (element) {
+      groupedMergeData.data.forEach(function (element) {
         let messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
         let options = {
           'htmlBody': messageData.htmlBody,
@@ -169,6 +163,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
  * @property {string} MERGE_FIELD_MARKER Text to be processed in RegExp() constructor to define merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
  * @property {string} ENABLE_NESTED_MERGE String boolean. Enable nested merge when true.
  * @property {string} NESTED_FIELD_MARKER Text to be processed in RegExp() constructor to define nested merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
+ * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a nested merge.
  */
 function getConfig_(configSheetName = 'Config') {
   // Get values from spreadsheet
@@ -198,13 +193,23 @@ function toBoolean_(stringBoolean) {
  * Create a Javascript object from a 2d array, grouped by a given property.
  * If the designated property is not included in the header, this function will return an empty object.
  * @param {array} data 2-dimensional array with a header as its first row.
- * @param {string} property Name of field name in header to group by.
+ * @param {string} property [Optional] Name of field name in header to group by.
+ * When property is not specified, this function will return an object with a key 'data', whose value is a simple array of objects converted from the given 2d array.
  * @return {object}
  */
-function groupArray_(data, property) {
+function groupArray_(data, property = null) {
   let header = data.shift();
   let index = header.indexOf(property);
-  if (index < 0) {
+  if (property == null) {
+    let groupedObj = {};
+    groupedObj['data'] = data.map(function (values) {
+      return header.reduce(function (obj, key, ind) {
+        obj[key] = values[ind];
+        return obj;
+      }, {});
+    });
+    return groupedObj;
+  } else if (index < 0) {
     let invalidProperty = {};
     return invalidProperty;
   } else {
@@ -310,9 +315,11 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
  * @param {RegExp} mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
  * @param {boolean} enableNestedMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
  * @param {RegExp} nestedFieldMarker [Optional] Regular expression for the nested merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[nested merge]]
+ * @param {string} rowIndexMarker [Optional] Marker for merging row index number in a nested merge. Defaults to '<<i>>'
  * @return {Object} Returns the template object with markers replaced for personalized text.
+ * 
  */
-function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g) {
+function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g, rowIndexMarker = '<<i>>') {
   let messageData = {};
   for (let k in template) {
     let text = '';
@@ -327,15 +334,26 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
         if (!fieldVars) {
           // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
           // assuming that the text length for opening and closing markers are 2 and 2, respectively
-          return field.substring(2, field.length - 2);
+          field = field.substring(2, field.length - 2);
+          return field;
         } else {
+          // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
+          // assuming that the text length for opening and closing markers are 2 and 2, respectively
+          field = field.substring(2, field.length - 2);
           let fieldMerged = [];
-          for (let i = 0; i < data.length; ++i){
+          for (let i = 0; i < data.length; ++i) {
             let datum = data[i];
-            ////////////////////
-            fieldMerged.push('////////////////////');
+            let rowIndex = i + 1;
+            let fieldCopy = field.replace(rowIndexMarker, rowIndex);
+            let fieldVarsCopy = fieldVars;
+            // Get the text inside markers, e.g., {{field name}} => field name,
+            // assuming that the text length for opening and closing markers are 2 and 2, respectively 
+            let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2));
+            fieldVarsCopy.forEach(
+              (variable, ind) => fieldCopy = fieldCopy.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
+            )
+            fieldMerged.push(fieldCopy);
           }
-          
           let fieldMergedText = fieldMerged.join('');
           return fieldMergedText;
         }
