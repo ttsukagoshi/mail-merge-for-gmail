@@ -128,7 +128,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     } else {
       // Convert the 2d-array merge data into object
       let groupedMergeData = groupArray_(mergeData);
-      // Send or create draft of personalized email////////////////////////////
+      // Send or create draft of personalized email /////////////////////////////////
       groupedMergeData.data.forEach(function (element) {
         let messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
         let options = {
@@ -329,38 +329,40 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
     // Nested merge
     if (enableNestedMerge === true) {
       let nestedText = text.match(nestedFieldMarker);
-      let nestedTextMerged = nestedText.map(function (field) {
-        let fieldVars = field.match(mergeFieldMarker);
-        if (!fieldVars) {
-          // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
-          // assuming that the text length for opening and closing markers are 2 and 2, respectively
-          field = field.substring(2, field.length - 2);
-          return field;
-        } else {
-          // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
-          // assuming that the text length for opening and closing markers are 2 and 2, respectively
-          field = field.substring(2, field.length - 2);
-          let fieldMerged = [];
-          for (let i = 0; i < data.length; ++i) {
-            let datum = data[i];
-            let rowIndex = i + 1;
-            let fieldCopy = field.replace(rowIndexMarker, rowIndex);
-            let fieldVarsCopy = fieldVars;
-            // Get the text inside markers, e.g., {{field name}} => field name,
-            // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-            let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2));
-            fieldVarsCopy.forEach(
-              (variable, ind) => fieldCopy = fieldCopy.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
-            )
-            fieldMerged.push(fieldCopy);
+      if (nestedText !== null) {
+        let nestedTextMerged = nestedText.map(function (field) {
+          let fieldVars = field.match(mergeFieldMarker);
+          if (!fieldVars) {
+            // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
+            // assuming that the text length for opening and closing markers are 2 and 2, respectively
+            field = field.substring(2, field.length - 2);
+            return field;
+          } else {
+            // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
+            // assuming that the text length for opening and closing markers are 2 and 2, respectively
+            field = field.substring(2, field.length - 2);
+            let fieldMerged = [];
+            for (let i = 0; i < data.length; ++i) {
+              let datum = data[i];
+              let rowIndex = i + 1;
+              let fieldCopy = field.replace(rowIndexMarker, rowIndex);
+              let fieldVarsCopy = fieldVars;
+              // Get the text inside markers, e.g., {{field name}} => field name,
+              // assuming that the text length for opening and closing markers are 2 and 2, respectively 
+              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2));
+              fieldVarsCopy.forEach(
+                (variable, ind) => fieldCopy = fieldCopy.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
+              )
+              fieldMerged.push(fieldCopy);
+            }
+            let fieldMergedText = fieldMerged.join('');
+            return fieldMergedText;
           }
-          let fieldMergedText = fieldMerged.join('');
-          return fieldMergedText;
-        }
-      });
-      nestedText.forEach(
-        (nestedField, index) => text = text.replace(nestedField, nestedTextMerged[index] || replaceValue)
-      );
+        });
+        nestedText.forEach(
+          (nestedField, index) => text = text.replace(nestedField, nestedTextMerged[index] || replaceValue)
+        );
+      }
     }
     console.log(text);////////////////////////////
 
