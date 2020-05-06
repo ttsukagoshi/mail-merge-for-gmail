@@ -275,7 +275,7 @@ function getDraftBySubject_(subject) {
   return targetDrafts;
 }
 
-/**
+/** fillInTemplateFromObject_() to be depreciated //////////////////////////////////////
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in MERGE_FIELD_MARKER
  * @param {Object} mergeData Object with values to replace markers.
@@ -307,6 +307,7 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
   return messageData;
 }
 
+
 /**
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in mergeFieldMarker
@@ -315,45 +316,40 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
  * @param {RegExp} mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
  * @param {boolean} enableNestedMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
  * @param {RegExp} nestedFieldMarker [Optional] Regular expression for the nested merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[nested merge]]
- * @param {string} rowIndexMarker [Optional] Marker for merging row index number in a nested merge. Defaults to '<<i>>'
+ * @param {string} rowIndexMarker [Optional] Marker for merging row index number in a nested merge. Defaults to '{{i}}'
  * @return {Object} Returns the template object with markers replaced for personalized text.
- * 
  */
-function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g, rowIndexMarker = '<<i>>') {
+function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g, rowIndexMarker = '{{i}}') {
   let messageData = {};
   for (let k in template) {
     let text = '';
     text = template[k];
-    console.log(text);////////////////////////////
-
     // Nested merge
     if (enableNestedMerge === true) {
+      // Create an array of nested field marker(s) in the text
       let nestedText = text.match(nestedFieldMarker);
+      // If the number of nested field marker is not 0...
       if (nestedText !== null) {
         let nestedTextMerged = nestedText.map(function (field) {
+          // Get the text inside nested field markers, e.g., [[nested field]] => nested field
+          field = field.substring(2, field.length - 2); // assuming that the text length for opening and closing markers are 2 and 2, respectively
+          // Create an array of merge field markers within a nested merge marker
           let fieldVars = field.match(mergeFieldMarker);
           if (!fieldVars) {
-            // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
-            // assuming that the text length for opening and closing markers are 2 and 2, respectively
-            field = field.substring(2, field.length - 2);
-            return field;
+            return field; // return the text of nested merge field itself if no merge field marker is found within the nested merge marker.
           } else {
-            // Get the text inside nested field markers, e.g., [[nested field]] => nested field,
-            // assuming that the text length for opening and closing markers are 2 and 2, respectively
-            field = field.substring(2, field.length - 2);
             let fieldMerged = [];
             for (let i = 0; i < data.length; ++i) {
               let datum = data[i];
               let rowIndex = i + 1;
-              let fieldCopy = field.replace(rowIndexMarker, rowIndex);
+              let fieldRowIndexed = field.replace(rowIndexMarker, rowIndex);
               let fieldVarsCopy = fieldVars;
-              // Get the text inside markers, e.g., {{field name}} => field name,
-              // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2));
+              // Get the text inside markers, e.g., {{field name}} => field name
+              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
               fieldVarsCopy.forEach(
-                (variable, ind) => fieldCopy = fieldCopy.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
+                (variable, ind) => fieldRowIndexed = fieldRowIndexed.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
               )
-              fieldMerged.push(fieldCopy);
+              fieldMerged.push(fieldRowIndexed);
             }
             let fieldMergedText = fieldMerged.join('');
             return fieldMergedText;
@@ -364,18 +360,15 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
         );
       }
     }
-    console.log(text);////////////////////////////
-
     // merging the rest of the field
     let mergeData = data[0];
-    // Search for all the variables to be replaced
+    // Create an array of all merge fields to be replaced
     let textVars = text.match(mergeFieldMarker);
     if (!textVars) {
       messageData[k] = text; // return text itself if no marker is found
     } else {
-      // Get the text inside markers, e.g., {{field name}} => field name,
-      // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-      let markerText = textVars.map(value => value.substring(2, value.length - 2));
+      // Get the text inside markers, e.g., {{field name}} => field name 
+      let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
       // If no value is available, replace with the string with replaceValue.
       textVars.forEach(
@@ -386,39 +379,6 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
   }
   return messageData;
 }
-/*
-    // Search for all the variables to be replaced
-    let textVars = text.match(mergeFieldMarker);
-    if (!textVars) {
-      messageData[k] = text; // return text itself if no marker is found
-    } else {
-      // Get the text inside markers. e.g., {{field name}} => field name
-      // assuming that the text length for opening and closing markers are 2 and 2, respectively
-      let markerText = textVars.map(value => value.substring(2, value.length - 2));
-
-      for (let property in data) {
-        let dataObjArr = data[property];
-        // Set loop limit depending on parameter nestedMerge
-        let limit = (nestedMerge == true ? dataObjArr.length : 1);
-        console.log(`limit: ${limit}`);///////////////////////////
-
-        for (let i = 0; i < limit; ++i) {
-          let dataObj = dataObjArr[i];
-          let textArr = [];
-          // Replace variables in textVars with the actual values from the data object.
-          // If no value is available, replace with the string with replaceValue.
-          textVars.forEach(function (variable, j) {
-            textArr.push(text.replace(variable, dataObj[markerText[j]] || replaceValue));
-          });
-          console.log(textArr);//////////////////////////
-          let joinedText = textArr.join('');
-          console.log(`joinedText: ${joinedText}`);//////////////////////////
-        }
-
-        messageData[k] = joinedText;
-      }
-    }
-    */
 
 /**
  * Standarized error message
