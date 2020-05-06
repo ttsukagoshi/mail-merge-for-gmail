@@ -21,7 +21,7 @@ const CONFIG = {
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_NESTED_MERGE: false,
   NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
-  ROW_INDEX_MARKER: '<<i>>'
+  ROW_INDEX_MARKER: '{{i}}'
 }
 
 // Add spreadsheet menu
