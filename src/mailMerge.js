@@ -35,19 +35,19 @@ function onOpen() {
 }
 
 /**
- * Send personalized email(s) to recipient address listed in sheet 'SHEET_NAME_DATA'
+ * Send test emails to myself the content of the first row in sheet 'List'
  */
-function sendEmails() {
-  const draftMode = false;
+function createDraftEmails() {
+  const draftMode = true;
   const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
 
 /**
- * Send test emails to myself the content of the first row in sheet 'List'
+ * Send personalized email(s) to recipient address listed in sheet 'SHEET_NAME_DATA'
  */
-function createDraftEmails() {
-  const draftMode = true;
+function sendEmails() {
+  const draftMode = false;
   const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
@@ -200,6 +200,17 @@ function toBoolean_(stringBoolean) {
 }
 
 /**
+ * Get an array of Gmail message(s) with the designated subject
+ * @param {string} subject Subject text of Gmail draft
+ * @return {array} Array of GmailMessage class objects. https://developers.google.com/apps-script/reference/gmail/gmail-message
+ */
+function getDraftBySubject_(subject) {
+  let draftMessages = GmailApp.getDraftMessages();
+  let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
+  return targetDrafts;
+}
+
+/**
  * Create a Javascript object from a 2d array, grouped by a given property.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property [Optional] Name of field name in header to group by.
@@ -254,17 +265,6 @@ function createObj_(keys, values) {
 }
 
 /**
- * Get an array of Gmail message(s) with the designated subject
- * @param {string} subject Subject text of Gmail draft
- * @return {array} Array of GmailMessage class objects. https://developers.google.com/apps-script/reference/gmail/gmail-message
- */
-function getDraftBySubject_(subject) {
-  let draftMessages = GmailApp.getDraftMessages();
-  let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
-  return targetDrafts;
-}
-
-/**
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in mergeFieldMarker
  * @param {array} data Array of object(s) with values to replace markers.
@@ -299,7 +299,7 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
               let datum = data[i];
               let rowIndex = i + 1;
               let fieldRowIndexed = field.replace(rowIndexMarker, rowIndex);
-              let fieldVarsCopy = fieldVars;
+              let fieldVarsCopy = fieldVars.slice();
               // Get the text inside markers, e.g., {{field name}} => field name
               let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
               fieldVarsCopy.forEach(
