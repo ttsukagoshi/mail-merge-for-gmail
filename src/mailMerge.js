@@ -97,8 +97,20 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     };
 
     // Check for consistency between config.ENABLE_NESTED_MERGE and template
-    /////////////////////
-
+    if (config.ENABLE_NESTED_MERGE === false) {
+      let nmFieldCounter = 0;
+      for (let k in template) {
+        let nmField = template[k].match(config.NESTED_FIELD_MARKER);
+        let nmFieldCount = (nmField === null ? 0 : nmField.length)
+        nmFieldCounter += nmFieldCount;
+      }
+      if (nmFieldCounter > 0){
+        let confirmNM = 'Nested merge field marker detected. Do you want to enable nested merge function?';
+        let result = ui.alert('Confirmation', confirmNM, ui.ButtonSet.YES_NO);
+        config.ENABLE_NESTED_MERGE = (result === ui.Button.YES ? true : config.ENABLE_NESTED_MERGE);
+      }
+    }
+    
     if (config.ENABLE_NESTED_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
