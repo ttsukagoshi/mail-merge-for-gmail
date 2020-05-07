@@ -363,3 +363,15 @@ function errorMessage_(e) {
   let message = `Error: line - ${e.lineNumber}\n[${e.name}] ${e.message}\n${e.stack}`
   return message;
 }
+
+/**
+ * Process each element of an array with String.prototype.replace()
+ * @param {array} array Array containing values to replace.
+ * @param {string|RegExp} searchValue A RegExp object or literal, or string to be replaced by replaceValue
+ * @param {string} replaceValue String to replace the searchValue.
+ * @return {array} Array whose element(s) are replaced.
+ */
+function arrReplace_(array, searchValue, replaceValue) {
+  let replacedArray = array.map(value => value.replace(searchValue, replaceValue));
+  return replacedArray;
+}
