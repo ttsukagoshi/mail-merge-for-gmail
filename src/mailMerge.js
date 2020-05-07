@@ -62,12 +62,10 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
-
-  // Get data of field(s) to merge in form of 2-dimensional array
+  // Get data of field(s) to merge in form of 2d array
   var dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
   var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
   var mergeData = mergeDataRange.getValues();
-
   try {
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
@@ -77,7 +75,6 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     if (answer !== ui.Button.OK) {
       throw new Error('Canceled.');
     }
-
     // Get template from Gmail draft
     let promptMessage = 'Enter the subject text of Gmail draft to use as template.';
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
@@ -105,7 +102,6 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     if (config.ENABLE_NESTED_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
-
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
@@ -113,37 +109,37 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       // Create draft or send email for each recipient
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
-        // take out the nested marker
-        // fill it in
-        // 
-        let nestedMergeFilled = '';//////////////////////
-        // return the filled-in marker to its original place
-        // replace fields of the whole text with mergeDataGrouped[k][0]
-
-        // replace fields of the whole text with row-by-row contents of mergeDataGrouped[k]
-
-      }
-      ///////////////////////////////////////////////////
-
-    } else {
-      // Convert the 2d-array merge data into object
-      let groupedMergeData = groupArray_(mergeData);
-      // Send or create draft of personalized email /////////////////////////////////
-      groupedMergeData.data.forEach(function (element) {
-        let messageData = fillInTemplateFromObject_(template, element, config.MERGE_FIELD_MARKER, config.REPLACE_VALUE);
+        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_NESTED_MERGE, config.NESTED_FIELD_MARKER, config.ROW_INDEX_MARKER);
         let options = {
           'htmlBody': messageData.htmlBody,
           'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
         };
         draftMode === true
-          ? GmailApp.createDraft(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options)
-          : GmailApp.sendEmail(element[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-      });
+          ? GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options)
+          : GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
+      }
+    } else {
+      // Convert the 2d-array merge data into object
+      let groupedMergeData = groupArray_(mergeData);
+      // Create draft or send email for each recipient
+      for (let i = 0; i < groupedMergeData.data.length; ++i) {
+        let object = groupedMergeData.data[i]
+        let mergeDataObjArr = [];
+        mergeDataObjArr.push(object);
+        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_NESTED_MERGE);
+        let options = {
+          'htmlBody': messageData.htmlBody,
+          'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
+        };
+        draftMode === true
+          ? GmailApp.createDraft(object[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options)
+          : GmailApp.sendEmail(object[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+      }
     }
     // Notification
     let completeMessage = (draftMode === true
       ? 'Complete: All draft(s) created.'
-      : 'Complete: All mails sent.');
+      : 'Complete: All mail(s) sent.');
     ui.alert(completeMessage)
   } catch (e) {
     let message = errorMessage_(e);
@@ -243,27 +239,6 @@ function createObj_(keys, values) {
   return obj;
 }
 
-// groupBy_() to be depreciated//////////////////////////////////////
-/**
- * Group objects by a property 
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
- * @param {array} objectArray Array of objects
- * @param {string} property Property to group object by
- * @return {Object}
- */
-/*
-function groupBy_(objectArray, property) {
-  return objectArray.reduce(function (acc, obj) {
-    let key = obj[property];
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(obj);
-    return acc;
-  }, {})
-}
-*/
-
 /**
  * Get an array of Gmail message(s) with the designated subject
  * @param {string} subject Subject text of Gmail draft
@@ -274,39 +249,6 @@ function getDraftBySubject_(subject) {
   let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
   return targetDrafts;
 }
-
-/** fillInTemplateFromObject_() to be depreciated //////////////////////////////////////
- * Replaces markers in a template object with values defined in a JavaScript data object.
- * @param {Object} template Template object containing markers, as designated in regular expression in MERGE_FIELD_MARKER
- * @param {Object} mergeData Object with values to replace markers.
- * @param {string} mergeFieldMarker Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
- * @param {string} replaceValue String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
- * @return {Object} Returns object with markers replaced.
- */
-function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{[^\}]+\}\}/g, replaceValue = 'NA') {
-  let messageData = {};
-  for (let k in template) {
-    let text = '';
-    text = template[k];
-    // Search for all the variables to be replaced
-    let textVars = text.match(mergeFieldMarker);
-    if (!textVars) {
-      messageData[k] = text; // return text itself if no marker is found
-    } else {
-      // Get the text inside markers. e.g., {{field name}} => field name
-      // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-      let markerText = textVars.map(value => value.substring(2, value.length - 2));
-      // Replace variables in textVars with the actual values from the data object.
-      // If no value is available, replace with replaceValue.
-      textVars.forEach(
-        (variable, i) => text = text.replace(variable, mergeData[markerText[i]] || replaceValue)
-      );
-      messageData[k] = text;
-    }
-  }
-  return messageData;
-}
-
 
 /**
  * Replaces markers in a template object with values defined in a JavaScript data object.
@@ -360,7 +302,7 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
         );
       }
     }
-    // merging the rest of the field
+    // merging the rest of the field based on the first row of data object array.
     let mergeData = data[0];
     // Create an array of all merge fields to be replaced
     let textVars = text.match(mergeFieldMarker);
