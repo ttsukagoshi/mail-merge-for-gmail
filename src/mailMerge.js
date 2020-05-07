@@ -73,7 +73,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       : `Are you sure you want to send email(s) as ${myEmail}?`);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
-      throw new Error('Canceled.');
+      throw new Error('Mail merge canceled.');
     }
     // Get template from Gmail draft
     let promptMessage = 'Enter the subject text of Gmail draft to use as template.';
@@ -85,17 +85,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       throw new Error('No text entered.');
     }
     let draftMessage = getDraftBySubject_(subjectText);
-    //// Check for duplicates
+    // Check for duplicates
     if (draftMessage.length > 1) {
       throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
     }
-    //// Store template into an object
+    // Store template into an object
     let template = {
       'subject': subjectText,
       'plainBody': draftMessage[0].getPlainBody(),
       'htmlBody': draftMessage[0].getBody()
     };
-
     // Check for consistency between config.ENABLE_NESTED_MERGE and template
     if (config.ENABLE_NESTED_MERGE === false) {
       let nmFieldCounter = 0;
@@ -104,13 +103,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let nmFieldCount = (nmField === null ? 0 : nmField.length)
         nmFieldCounter += nmFieldCount;
       }
+      // If nested merge field marker is detected in the template when ENABLE_NESTED_MERGE is set to false,
+      // ask whether or not to enable this function, i.e., to change ENABLE_NESTED_MERGE to true.
       if (nmFieldCounter > 0){
         let confirmNM = 'Nested merge field marker detected. Do you want to enable nested merge function?';
         let result = ui.alert('Confirmation', confirmNM, ui.ButtonSet.YES_NO);
         config.ENABLE_NESTED_MERGE = (result === ui.Button.YES ? true : config.ENABLE_NESTED_MERGE);
       }
     }
-    
+    // Create draft or send email based on the template.
+    // The process depends on the value of ENABLE_NESTED_MERGE
     if (config.ENABLE_NESTED_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
