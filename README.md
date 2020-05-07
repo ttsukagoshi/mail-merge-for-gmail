@@ -25,7 +25,7 @@ Create a Gmail draft to serve as the template. By default, the merge fields are 
 #### Nested Merge
 In a case where there are two or more entries in your list with the same recipient, you might want to combine the entries into a single email rather than sending the recipient similar emails more than once. Nested merge enables you to specify which field to list individually and which to combine in an email, as shown in the example below.
 
-The nested merge field is, by default, marked by double square brackets, i.e., `[[Meeting ID: {{Meeting ID}}]]`. The merge fields (the curly brackets) nested inside this nested merge field will be merged reclusively if there are two or more rows for the same recipient. A special index field `{{i}}` can be used inside the nested merge field to indicate the index number within the nested merge. To enable the nested merge function, change the value of `ENABLE_NESTED_MERGE`.
+The nested merge field is, by default, marked by double square brackets, i.e., `[[Meeting ID: {{Meeting ID}}]]`. The merge fields (the curly brackets) nested inside this nested merge field will be merged reclusively if there are two or more rows for the same recipient. A special index field `{{i}}` can be used inside the nested merge field to indicate the index number within the nested merge. To enable the nested merge function, change the value of `ENABLE_NESTED_MERGE` to `true`.
 
 #### Notes
 - The subject of the template Gmail draft must be unique. An error will be returned during the process of Step 4 below if there are two or more Gmail templates with the designated subject.
@@ -99,7 +99,7 @@ We look forward to seeing you!
 ```
 
 ## Advanced Settings
-- The marker for merge fields and nested merge fields can be adjusted via the values `MERGE_FIELD_MARKER` and `NESTED_FIELD_MARKER`, respectively, in the sheet `Config`. You will need to be familiar with the regular expressions of Javascript.
+- The markers for merge fields and nested merge fields can be adjusted via the values `MERGE_FIELD_MARKER` and `NESTED_FIELD_MARKER`, respectively, in the sheet `Config`. You will need to be familiar with [the regular expressions of JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions).
 - The index field marker for nested merge `{{i}}` can also be modified through the value `ROW_INDEX_MARKER` in sheet `Config`.
 - If HTML is enabled in your Gmail, make sure that your modified markers can still be detected in the HTML string.
 
