@@ -186,15 +186,15 @@ function getConfig_(configSheetName = 'Config') {
  * @return {boolean}
  */
 function toBoolean_(stringBoolean) {
-  return stringBoolean.toLowerCase === 'true';
+  return stringBoolean.toLowerCase() === 'true';
 }
 
 /**
  * Create a Javascript object from a 2d array, grouped by a given property.
- * If the designated property is not included in the header, this function will return an empty object.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property [Optional] Name of field name in header to group by.
  * When property is not specified, this function will return an object with a key 'data', whose value is a simple array of objects converted from the given 2d array.
+ * If the designated property is not included in the header, this function will return an empty object.
  * @return {object}
  */
 function groupArray_(data, property = null) {
@@ -297,7 +297,7 @@ function fillInTemplateFromObject_(template, mergeData, mergeFieldMarker = /\{\{
       // assuming that the text length for opening and closing markers are 2 and 2, respectively 
       let markerText = textVars.map(value => value.substring(2, value.length - 2));
       // Replace variables in textVars with the actual values from the data object.
-      // If no value is available, replace with the string with replaceValue.
+      // If no value is available, replace with replaceValue.
       textVars.forEach(
         (variable, i) => text = text.replace(variable, mergeData[markerText[i]] || replaceValue)
       );
@@ -370,7 +370,7 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
       // Get the text inside markers, e.g., {{field name}} => field name 
       let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
-      // If no value is available, replace with the string with replaceValue.
+      // If no value is available, replace with replaceValue.
       textVars.forEach(
         (variable, i) => text = text.replace(variable, mergeData[markerText[i]] || replaceValue)
       );
