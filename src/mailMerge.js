@@ -62,10 +62,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
+
   // Get data of field(s) to merge in form of 2d array
   var dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
   var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
   var mergeData = mergeDataRange.getValues();
+
+  // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
+  // to CRLF format ('\r\n') for merging into Gmail plain text
+  let mergeDataEolReplaced = mergeData.map(element => arrReplace_(element, /\n|\r|\r\n/g, '\r\n'));
+
   try {
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
@@ -115,7 +121,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     // The process depends on the value of ENABLE_NESTED_MERGE
     if (config.ENABLE_NESTED_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
-      let groupedMergeData = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
+      let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
@@ -134,7 +140,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       }
     } else {
       // Convert the 2d-array merge data into object
-      let groupedMergeData = groupArray_(mergeData);
+      let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
       for (let i = 0; i < groupedMergeData.data.length; ++i) {
         let object = groupedMergeData.data[i]
