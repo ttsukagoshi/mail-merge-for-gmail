@@ -35,19 +35,19 @@ function onOpen() {
 }
 
 /**
- * Send personalized email(s) to recipient address listed in sheet 'SHEET_NAME_DATA'
+ * Send test emails to myself the content of the first row in sheet 'List'
  */
-function sendEmails() {
-  const draftMode = false;
+function createDraftEmails() {
+  const draftMode = true;
   const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
 
 /**
- * Send test emails to myself the content of the first row in sheet 'List'
+ * Send personalized email(s) to recipient address listed in sheet 'SHEET_NAME_DATA'
  */
-function createDraftEmails() {
-  const draftMode = true;
+function sendEmails() {
+  const draftMode = false;
   const config = getConfig_('Config');
   sendPersonalizedEmails_(draftMode, config);
 }
@@ -62,10 +62,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
+
   // Get data of field(s) to merge in form of 2d array
   var dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
   var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
   var mergeData = mergeDataRange.getValues();
+
+  // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
+  // to CRLF format ('\r\n') for merging into Gmail plain text
+  let mergeDataEolReplaced = mergeData.map(element => arrReplace_(element, /\n|\r|\r\n/g, '\r\n'));
+
   try {
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
@@ -73,7 +79,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       : `Are you sure you want to send email(s) as ${myEmail}?`);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
-      throw new Error('Canceled.');
+      throw new Error('Mail merge canceled.');
     }
     // Get template from Gmail draft
     let promptMessage = 'Enter the subject text of Gmail draft to use as template.';
@@ -85,17 +91,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       throw new Error('No text entered.');
     }
     let draftMessage = getDraftBySubject_(subjectText);
-    //// Check for duplicates
+    // Check for duplicates
     if (draftMessage.length > 1) {
       throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
     }
-    //// Store template into an object
+    // Store template into an object
     let template = {
       'subject': subjectText,
       'plainBody': draftMessage[0].getPlainBody(),
       'htmlBody': draftMessage[0].getBody()
     };
-
     // Check for consistency between config.ENABLE_NESTED_MERGE and template
     if (config.ENABLE_NESTED_MERGE === false) {
       let nmFieldCounter = 0;
@@ -104,16 +109,19 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let nmFieldCount = (nmField === null ? 0 : nmField.length)
         nmFieldCounter += nmFieldCount;
       }
+      // If nested merge field marker is detected in the template when ENABLE_NESTED_MERGE is set to false,
+      // ask whether or not to enable this function, i.e., to change ENABLE_NESTED_MERGE to true.
       if (nmFieldCounter > 0){
         let confirmNM = 'Nested merge field marker detected. Do you want to enable nested merge function?';
         let result = ui.alert('Confirmation', confirmNM, ui.ButtonSet.YES_NO);
         config.ENABLE_NESTED_MERGE = (result === ui.Button.YES ? true : config.ENABLE_NESTED_MERGE);
       }
     }
-    
+    // Create draft or send email based on the template.
+    // The process depends on the value of ENABLE_NESTED_MERGE
     if (config.ENABLE_NESTED_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
-      let groupedMergeData = groupArray_(mergeData, config.RECIPIENT_COL_NAME);
+      let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
@@ -132,7 +140,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       }
     } else {
       // Convert the 2d-array merge data into object
-      let groupedMergeData = groupArray_(mergeData);
+      let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
       for (let i = 0; i < groupedMergeData.data.length; ++i) {
         let object = groupedMergeData.data[i]
@@ -198,6 +206,17 @@ function toBoolean_(stringBoolean) {
 }
 
 /**
+ * Get an array of Gmail message(s) with the designated subject
+ * @param {string} subject Subject text of Gmail draft
+ * @return {array} Array of GmailMessage class objects. https://developers.google.com/apps-script/reference/gmail/gmail-message
+ */
+function getDraftBySubject_(subject) {
+  let draftMessages = GmailApp.getDraftMessages();
+  let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
+  return targetDrafts;
+}
+
+/**
  * Create a Javascript object from a 2d array, grouped by a given property.
  * @param {array} data 2-dimensional array with a header as its first row.
  * @param {string} property [Optional] Name of field name in header to group by.
@@ -252,17 +271,6 @@ function createObj_(keys, values) {
 }
 
 /**
- * Get an array of Gmail message(s) with the designated subject
- * @param {string} subject Subject text of Gmail draft
- * @return {array} Array of GmailMessage class objects. https://developers.google.com/apps-script/reference/gmail/gmail-message
- */
-function getDraftBySubject_(subject) {
-  let draftMessages = GmailApp.getDraftMessages();
-  let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
-  return targetDrafts;
-}
-
-/**
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in mergeFieldMarker
  * @param {array} data Array of object(s) with values to replace markers.
@@ -297,7 +305,7 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
               let datum = data[i];
               let rowIndex = i + 1;
               let fieldRowIndexed = field.replace(rowIndexMarker, rowIndex);
-              let fieldVarsCopy = fieldVars;
+              let fieldVarsCopy = fieldVars.slice();
               // Get the text inside markers, e.g., {{field name}} => field name
               let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
               fieldVarsCopy.forEach(
@@ -342,4 +350,16 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
 function errorMessage_(e) {
   let message = `Error: line - ${e.lineNumber}\n[${e.name}] ${e.message}\n${e.stack}`
   return message;
+}
+
+/**
+ * Process each element of an array with String.prototype.replace()
+ * @param {array} array Array containing values to replace.
+ * @param {string|RegExp} searchValue A RegExp object or literal, or string to be replaced by replaceValue
+ * @param {string} replaceValue String to replace the searchValue.
+ * @return {array} Array whose element(s) are replaced.
+ */
+function arrReplace_(array, searchValue, replaceValue) {
+  let replacedArray = array.map(value => value.replace(searchValue, replaceValue));
+  return replacedArray;
 }
