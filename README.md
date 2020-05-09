@@ -18,6 +18,7 @@ Edit your spreadsheet in any way you want to. If you want to change the sheet na
 - The default value for the field (column) name of recipient email address is set to `Email`; change the value of `RECIPIENT_COL_NAME` in sheet `Config` to suit your needs
 - Changing sheet name of `Config` is not recommended unless you are familiar with Google Apps Script and can edit the relevant section of the script.
 - The lower-case letter `i` is reserved as part of the nested merge function, as described below, and cannot be used for a column name.
+- Line breaks within a spreadsheet cell will be reflected in the plain text version of the merged mail, but not in the HTML version.
 
 ### 3. Create a template draft on Gmail
 Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). If HTML mail is enabled, text styles of the draft template will be reflected on the personalized emails.
