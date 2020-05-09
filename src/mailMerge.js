@@ -35,7 +35,7 @@ function onOpen() {
 }
 
 /**
- * Send test emails to myself the content of the first row in sheet 'List'
+ * Create draft of personalized email(s)
  */
 function createDraftEmails() {
   const draftMode = true;
@@ -44,7 +44,7 @@ function createDraftEmails() {
 }
 
 /**
- * Send personalized email(s) to recipient address listed in sheet 'SHEET_NAME_DATA'
+ * Send personalized email(s)
  */
 function sendEmails() {
   const draftMode = false;
