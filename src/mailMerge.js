@@ -19,8 +19,8 @@ const CONFIG = {
   BCC_TO_MYSELF: true,
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
-  ENABLE_NESTED_MERGE: false,
-  NESTED_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
+  ENABLE_GROUP_MERGE: false,
+  GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
   ROW_INDEX_MARKER: '{{i}}'
 }
 
@@ -101,25 +101,25 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       'plainBody': draftMessage[0].getPlainBody(),
       'htmlBody': draftMessage[0].getBody()
     };
-    // Check for consistency between config.ENABLE_NESTED_MERGE and template
-    if (config.ENABLE_NESTED_MERGE === false) {
+    // Check for consistency between config.ENABLE_GROUP_MERGE and template
+    if (config.ENABLE_GROUP_MERGE === false) {
       let nmFieldCounter = 0;
       for (let k in template) {
-        let nmField = template[k].match(config.NESTED_FIELD_MARKER);
+        let nmField = template[k].match(config.GROUP_FIELD_MARKER);
         let nmFieldCount = (nmField === null ? 0 : nmField.length)
         nmFieldCounter += nmFieldCount;
       }
-      // If nested merge field marker is detected in the template when ENABLE_NESTED_MERGE is set to false,
-      // ask whether or not to enable this function, i.e., to change ENABLE_NESTED_MERGE to true.
+      // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
+      // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
       if (nmFieldCounter > 0){
-        let confirmNM = 'Nested merge field marker detected. Do you want to enable nested merge function?';
+        let confirmNM = 'Group merge field marker detected. Do you want to enable group merge function?';
         let result = ui.alert('Confirmation', confirmNM, ui.ButtonSet.YES_NO);
-        config.ENABLE_NESTED_MERGE = (result === ui.Button.YES ? true : config.ENABLE_NESTED_MERGE);
+        config.ENABLE_GROUP_MERGE = (result === ui.Button.YES ? true : config.ENABLE_GROUP_MERGE);
       }
     }
     // Create draft or send email based on the template.
-    // The process depends on the value of ENABLE_NESTED_MERGE
-    if (config.ENABLE_NESTED_MERGE === true) {
+    // The process depends on the value of ENABLE_GROUP_MERGE
+    if (config.ENABLE_GROUP_MERGE === true) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
       // Validity check
@@ -129,7 +129,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       // Create draft or send email for each recipient
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
-        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_NESTED_MERGE, config.NESTED_FIELD_MARKER, config.ROW_INDEX_MARKER);
+        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_GROUP_MERGE, config.GROUP_FIELD_MARKER, config.ROW_INDEX_MARKER);
         let options = {
           'htmlBody': messageData.htmlBody,
           'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
@@ -146,7 +146,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let object = groupedMergeData.data[i]
         let mergeDataObjArr = [];
         mergeDataObjArr.push(object);
-        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_NESTED_MERGE);
+        let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_GROUP_MERGE);
         let options = {
           'htmlBody': messageData.htmlBody,
           'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
@@ -189,9 +189,9 @@ function arrReplace_(array, searchValue, replaceValue) {
  * @property {string} BCC_TO_MYSELF String boolean. When true, will send (or create draft) email with the sender's address set to BCC.
  * @property {string} REPLACE_VALUE Text that will replace empty data of marker. 
  * @property {string} MERGE_FIELD_MARKER Text to be processed in RegExp() constructor to define merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
- * @property {string} ENABLE_NESTED_MERGE String boolean. Enable nested merge when true.
- * @property {string} NESTED_FIELD_MARKER Text to be processed in RegExp() constructor to define nested merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
- * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a nested merge.
+ * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
+ * @property {string} GROUP_FIELD_MARKER Text to be processed in RegExp() constructor to define group merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
+ * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a group merge.
  */
 function getConfig_(configSheetName = 'Config') {
   // Get values from spreadsheet
@@ -202,9 +202,9 @@ function getConfig_(configSheetName = 'Config') {
   configValues.forEach(element => configObj[element[0]] = element[1]);
   // Convert data types
   configObj.BCC_TO_MYSELF = toBoolean_(configObj.BCC_TO_MYSELF);
-  configObj.ENABLE_NESTED_MERGE = toBoolean_(configObj.ENABLE_NESTED_MERGE);
+  configObj.ENABLE_GROUP_MERGE = toBoolean_(configObj.ENABLE_GROUP_MERGE);
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
-  configObj.NESTED_FIELD_MARKER = new RegExp(configObj.NESTED_FIELD_MARKER, 'g');
+  configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
   return configObj;
 }
 
@@ -288,29 +288,29 @@ function createObj_(keys, values) {
  * @param {array} data Array of object(s) with values to replace markers.
  * @param {string} replaceValue [Optional] String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
  * @param {RegExp} mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
- * @param {boolean} enableNestedMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
- * @param {RegExp} nestedFieldMarker [Optional] Regular expression for the nested merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[nested merge]]
- * @param {string} rowIndexMarker [Optional] Marker for merging row index number in a nested merge. Defaults to '{{i}}'
+ * @param {boolean} enableGroupMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
+ * @param {RegExp} groupFieldMarker [Optional] Regular expression for the group merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[group merge]]
+ * @param {string} rowIndexMarker [Optional] Marker for merging row index number in a group merge. Defaults to '{{i}}'
  * @return {Object} Returns the template object with markers replaced for personalized text.
  */
-function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableNestedMerge = false, nestedFieldMarker = /\[\[[^\]]+\]\]/g, rowIndexMarker = '{{i}}') {
+function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker = /\{\{[^\}]+\}\}/g, enableGroupMerge = false, groupFieldMarker = /\[\[[^\]]+\]\]/g, rowIndexMarker = '{{i}}') {
   let messageData = {};
   for (let k in template) {
     let text = '';
     text = template[k];
-    // Nested merge
-    if (enableNestedMerge === true) {
-      // Create an array of nested field marker(s) in the text
-      let nestedText = text.match(nestedFieldMarker);
-      // If the number of nested field marker is not 0...
-      if (nestedText !== null) {
-        let nestedTextMerged = nestedText.map(function (field) {
-          // Get the text inside nested field markers, e.g., [[nested field]] => nested field
+    // Group merge
+    if (enableGroupMerge === true) {
+      // Create an array of group field marker(s) in the text
+      let groupText = text.match(groupFieldMarker);
+      // If the number of group field marker is not 0...
+      if (groupText !== null) {
+        let groupTextMerged = groupText.map(function (field) {
+          // Get the text inside group field markers, e.g., [[group field]] => group field
           field = field.substring(2, field.length - 2); // assuming that the text length for opening and closing markers are 2 and 2, respectively
-          // Create an array of merge field markers within a nested merge marker
+          // Create an array of merge field markers within a group merge marker
           let fieldVars = field.match(mergeFieldMarker);
           if (!fieldVars) {
-            return field; // return the text of nested merge field itself if no merge field marker is found within the nested merge marker.
+            return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
             let fieldMerged = [];
             for (let i = 0; i < data.length; ++i) {
@@ -329,8 +329,8 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
             return fieldMergedText;
           }
         });
-        nestedText.forEach(
-          (nestedField, index) => text = text.replace(nestedField, nestedTextMerged[index] || replaceValue)
+        groupText.forEach(
+          (groupField, index) => text = text.replace(groupField, groupTextMerged[index] || replaceValue)
         );
       }
     }
