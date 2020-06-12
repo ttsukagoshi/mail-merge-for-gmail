@@ -98,7 +98,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
     }
     // Throw error if no draft template is found
-    if (draftMessage.lenth == 0 ){
+    if (draftMessage.length == 0 ){
       throw new Error('No template Gmail draft with matching subject found.');
     }
     // Store template into an object
