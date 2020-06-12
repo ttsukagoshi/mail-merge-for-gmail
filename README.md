@@ -34,7 +34,8 @@ The group merge field is, by default, marked by double square brackets, i.e., `[
 - If an invalid field name (e.g., a field name that does not match the column names) is designated, the field is replace by `NA` or the text value you entered for `REPLACE_VALUE` in sheet `Config`.
 
 ### 4. Create Personalized Gmail Drafts or Send Merged Emails
-From the spreadsheet menu `Mail Merge`, you can choose either to create drafts or directly send emails based on the draft template.
+From the spreadsheet menu `Mail Merge`, you can choose either to `Create Draft` or directly `Send Emails` based on the template. You will be prompted to enter the subject of the template mail that you created in the above Step 3.
+
 #### Notes
 - The boolean value `BCC_TO_MYSELF` in sheet `Config` determines whether or not to include the sender's email address as BCC in each personalized email. The default value is set to `true`; change to `false` if you do not want to set the BCC.
 
