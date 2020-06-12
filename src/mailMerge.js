@@ -84,7 +84,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       throw new Error('Mail merge canceled.');
     }
     // Get template from Gmail draft
-    let promptMessage = 'Enter the subject text of Gmail draft to use as template.';
+    let promptMessage = 'Enter the subject of Gmail template draft.';
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
     let [selectedButton, subjectText] = [promptResult.getSelectedButton(), promptResult.getResponseText()];
     if (selectedButton !== ui.Button.OK) {
@@ -96,6 +96,10 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     // Check for duplicates
     if (draftMessage.length > 1) {
       throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
+    }
+    // Throw error if no draft template is found
+    if (draftMessage.lenth == 0 ){
+      throw new Error('No template Gmail draft with matching subject found.');
     }
     // Store template into an object
     let template = {
