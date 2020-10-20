@@ -1,6 +1,5 @@
 # clasp-related files
 .clasp.json
-appsscript.json
 
 # for testing
 src/test.js
