@@ -112,7 +112,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       let nmFieldCounter = 0;
       for (let k in template) {
         let nmField = template[k].match(config.GROUP_FIELD_MARKER);
-        let nmFieldCount = (nmField === null ? 0 : nmField.length)
+        let nmFieldCount = (nmField === null ? 0 : nmField.length);
         nmFieldCounter += nmFieldCount;
       }
       // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
@@ -149,7 +149,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
       for (let i = 0; i < groupedMergeData.data.length; ++i) {
-        let object = groupedMergeData.data[i]
+        let object = groupedMergeData.data[i];
         let mergeDataObjArr = [];
         mergeDataObjArr.push(object);
         let messageData = fillInTemplate_(template, mergeDataObjArr, config.REPLACE_VALUE, config.MERGE_FIELD_MARKER, config.ENABLE_GROUP_MERGE);
@@ -166,7 +166,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
     let completeMessage = (draftMode === true
       ? 'Complete: All draft(s) created.'
       : 'Complete: All mail(s) sent.');
-    ui.alert(completeMessage)
+    ui.alert(completeMessage);
   } catch (e) {
     let message = errorMessage_(e);
     ui.alert(message);
@@ -328,7 +328,7 @@ function fillInTemplate_(template, data, replaceValue = 'NA', mergeFieldMarker =
               let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
               fieldVarsCopy.forEach(
                 (variable, ind) => fieldRowIndexed = fieldRowIndexed.replace(variable, datum[fieldMarkerText[ind]] || replaceValue)
-              )
+              );
               fieldMerged.push(fieldRowIndexed);
             }
             let fieldMergedText = fieldMerged.join('');

@@ -1,4 +1,4 @@
-# Mail Merge for Gmail
+# Mail Merge for Gmail [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript)
 Send personalized emails based on Gmail template to multiple recipients using Gmail, Google Spreadsheet, and Google Apps Script. An alternative for using BCC.
 
 ## Overview
