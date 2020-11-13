@@ -16,6 +16,9 @@
 
 const MESSAGES = {
   'en_US': {
+    'menuName': 'Mail Merge',
+    'menuCreateDraft': 'Create Draft',
+    'menuSendEmails': 'Send Emails'
   },
   'ja': {
   }
@@ -23,8 +26,13 @@ const MESSAGES = {
 
 class LocalizedMessage {
   constructor(userLocale = 'en_US') {
-    this.locale = userLocale;
-    this.messageList = (MESSAGES[this.locale] ? MESSAGES[this.locale] : MESSAGES.en_US);
+    this.locale = (MESSAGES[userLocale] ? userLocale : 'en_US');
+    this.messageList = MESSAGES[this.locale];
+    Object.keys(MESSAGES.en_US).forEach(key => {
+      if (!this.messageList[key]) {
+        this.messageList[key] = MESSAGES.en_US[key];
+      }
+    });
   }
 
   /**

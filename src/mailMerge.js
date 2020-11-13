@@ -28,11 +28,13 @@ const CONFIG = {
 
 // Add spreadsheet menu
 function onOpen() {
-  let ui = SpreadsheetApp.getUi();
-  ui.createMenu('Mail Merge')
-    .addItem('Create Draft', 'createDraftEmails')
+  var locale = Session.getActiveUserLocale();
+  var localizedMessage = new LocalizedMessage(locale);
+  SpreadsheetApp.getUi()
+    .createMenu(localizedMessage.messageList.menuName)
+    .addItem(localizedMessage.messageList.menuCreateDraft, 'createDraftEmails')
     .addSeparator()
-    .addItem('Send Emails', 'sendEmails')
+    .addItem(localizedMessage.messageList.menuSendEmails, 'sendEmails')
     .addToUi();
 }
 
@@ -64,17 +66,16 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
-
-  // Get data of field(s) to merge in form of 2d array
-  var dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
-  var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
-  var mergeData = mergeDataRange.getValues();
-
-  // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
-  // to CRLF format ('\r\n') for merging into Gmail plain text
-  var mergeDataEolReplaced = mergeData.map(element => arrReplace_(element, /\n|\r|\r\n/g, '\r\n'));
-
+  var locale = Session.getActiveUserLocale();
+  var localizedMessage = new LocalizedMessage(locale);
   try {
+    // Get data of field(s) to merge in form of 2d array
+    let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
+    let mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
+    let mergeData = mergeDataRange.getValues();
+    // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
+    // to CRLF format ('\r\n') for merging into Gmail plain text
+    let mergeDataEolReplaced = mergeData.map(element => arrReplace_(element, /\n|\r|\r\n/g, '\r\n'));
     // Confirmation before sending email
     let confirmAccount = (draftMode === true
       ? `Are you sure you want to create draft email(s) as ${myEmail}?`
