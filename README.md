@@ -1,9 +1,10 @@
-# Mail Merge for Gmail [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript)
-Send personalized emails based on Gmail template to multiple recipients using Gmail, Google Spreadsheet, and Google Apps Script. An alternative for using BCC.
+# Mail Merge for Gmail (English / [日本語](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md))
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript)  
+Send personalized emails based on Gmail template to multiple recipients using Gmail, Google Spreadsheet, and Google Apps Script. The **Group Merge** feature, which allows the sender to group the contents of two or more rows into one row for a single recipient, is available.
 
 ## Overview
 Similar to [the mail merge feature available in Microsoft Word](https://support.office.com/en-us/article/use-mail-merge-for-bulk-email-letters-labels-and-envelopes-f488ed5b-b849-4c11-9cff-932c49474705), this Mail Merge for Gmail allows Gmail/G Suite users to send personalized emails to the recipients listed in the spreadsheet. Some notable features are:  
-- Use Gmail drafts as template for mail merge. HTML styling is preserved in the personalized emails.
+- Use Gmail drafts as template for mail merge. HTML styling and file attachments are preserved in the personalized emails.
 - The **Group Merge** feature available for combining two or more entries with the same recipient.
 
 ## How to Use
@@ -21,10 +22,10 @@ Edit your spreadsheet in any way you want to. If you want to change the sheet na
 - Line breaks within a spreadsheet cell will be reflected in the plain text version of the merged mail, but not in the HTML version.
 
 ### 3. Create a template draft on Gmail
-Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). If HTML mail is enabled, text styles of the draft template will be reflected on the personalized emails.
+Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). Files can be attached to the draft to be reflected on the personlized emails. If HTML mail is enabled, text styles of the draft template will also be carried over.
 
 #### Group Merge
-In a case where there are two or more entries in your list with the same recipient, you might want to group the entries into a single email rather than sending the recipient similar emails more than once. Group merge enables you to specify which field to list individually and which to combine in an email, as shown in the example below.
+In a case where there are two or more entries in your list with the same recipient, you might want to group the entries into a single email rather than sending the recipient similar emails more than once. Group merge enables you to specify which field to list individually and which to combine in an email, as shown in [the example below](https://github.com/ttsukagoshi/mail-merge-for-gmail#example-of-group-merge).
 
 The group merge field is, by default, marked by double square brackets, i.e., `[[Meeting ID: {{Meeting ID}}]]`. The merge fields (the curly brackets) nested inside this group merge field will be merged reclusively if there are two or more rows for the same recipient. A special index field `{{i}}` can be used inside the group merge field to indicate the index number within the group merge. To enable the group merge function, change the value of `ENABLE_GROUP_MERGE` to `true`.
 
