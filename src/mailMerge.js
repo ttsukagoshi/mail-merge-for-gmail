@@ -28,11 +28,13 @@ const CONFIG = {
 
 // Add spreadsheet menu
 function onOpen() {
-  let ui = SpreadsheetApp.getUi();
-  ui.createMenu('Mail Merge')
-    .addItem('Create Draft', 'createDraftEmails')
+  var locale = Session.getActiveUserLocale();
+  var localizedMessage = new LocalizedMessage(locale);
+  SpreadsheetApp.getUi()
+    .createMenu(localizedMessage.messageList.menuName)
+    .addItem(localizedMessage.messageList.menuCreateDraft, 'createDraftEmails')
     .addSeparator()
-    .addItem('Send Emails', 'sendEmails')
+    .addItem(localizedMessage.messageList.menuSendEmails, 'sendEmails')
     .addToUi();
 }
 
@@ -40,18 +42,24 @@ function onOpen() {
  * Create draft of personalized email(s)
  */
 function createDraftEmails() {
-  const draftMode = true;
-  const config = getConfig_('Config');
-  sendPersonalizedEmails_(draftMode, config);
+  console.log('Initiating Mail Merge for Gmail on Draft Mode...'); // log
+  var draftMode = true;
+  console.log('Loading config...'); // log
+  var config = getConfig_('Config');
+  console.log(`config: ${JSON.stringify(config)}`); // log
+  sendPersonalizedEmails(draftMode, config);
 }
 
 /**
  * Send personalized email(s)
  */
 function sendEmails() {
-  const draftMode = false;
-  const config = getConfig_('Config');
-  sendPersonalizedEmails_(draftMode, config);
+  console.log('Initiating Mail Merge for Gmail on Send Mode...'); // log
+  var draftMode = false;
+  console.log('Loading config...'); // log
+  var config = getConfig_('Config');
+  console.log(`config: ${JSON.stringify(config)}`); // log
+  sendPersonalizedEmails(draftMode, config);
 }
 
 /**
@@ -60,46 +68,47 @@ function sendEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
+function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
-
-  // Get data of field(s) to merge in form of 2d array
-  var dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
-  var mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
-  var mergeData = mergeDataRange.getValues();
-
-  // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
-  // to CRLF format ('\r\n') for merging into Gmail plain text
-  var mergeDataEolReplaced = mergeData.map(element => arrReplace_(element, /\n|\r|\r\n/g, '\r\n'));
-
+  var locale = Session.getActiveUserLocale();
+  var localizedMessage = new LocalizedMessage(locale);
+  console.log(`Loaded spreadsheet. Language set to ${locale}`); // log
   try {
+    // Get data of field(s) to merge in form of 2d array
+    let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
+    let mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
+    let mergeData = mergeDataRange.getValues();
+    // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
+    // to CRLF format ('\r\n') for merging into Gmail plain text
+    let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
+    console.log('Loaded merged data.'); // log
     // Confirmation before sending email
-    let confirmAccount = (draftMode === true
-      ? `Are you sure you want to create draft email(s) as ${myEmail}?`
-      : `Are you sure you want to send email(s) as ${myEmail}?`);
+    let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
-      throw new Error('Mail merge canceled.');
+      throw new Error(localizedMessage.messageList.errorCanceled);
     }
+    console.log(`Account confirmed manually: ${myEmail}`); // log
     // Get template from Gmail draft
-    let promptMessage = 'Enter the subject of Gmail template draft.';
+    let promptMessage = localizedMessage.messageList.promptEnterSubjectOfTemplateDraft;
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
     let [selectedButton, subjectText] = [promptResult.getSelectedButton(), promptResult.getResponseText()];
     if (selectedButton !== ui.Button.OK) {
-      throw new Error('Mail merge canceled.');
+      throw new Error(localizedMessage.messageList.errorCanceled);
     } else if (subjectText == null) {
-      throw new Error('No text entered.');
+      throw new Error(localizedMessage.message.errorNoTextEntered);
     }
+    console.log(`Entered subject of draft template, loading template "${subjectText}"...`); // log
     let draftMessage = getDraftBySubject_(subjectText);
     // Check for duplicates
     if (draftMessage.length > 1) {
-      throw new Error('There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.');
+      throw new Error(localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject);
     }
     // Throw error if no draft template is found
     if (draftMessage.length == 0) {
-      throw new Error('No template Gmail draft with matching subject found.');
+      throw new Error(localizedMessage.messageList.errorNoMatchingTemplateDraft);
     }
     // Store template into an object
     let template = {
@@ -108,37 +117,38 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       'htmlBody': draftMessage[0].getBody(),
       'attachments': draftMessage[0].getAttachments()
     };
+    // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
-    console.log(template.plainBody); ////////////////////////////////////
-    console.log(template.htmlBody);//////////////////////////////
-    console.log(isPlainText);//////////////////////////////////
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
-    if (config.ENABLE_GROUP_MERGE === false) {
+    console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
+    if (!config.ENABLE_GROUP_MERGE) {
       let nmFieldCounter = 0;
       for (let k in template) {
         if (k == 'attachments') {
-          continue;
+          continue; // Skip this process for attachment files
         }
         let nmField = template[k].match(config.GROUP_FIELD_MARKER);
         let nmFieldCount = (nmField === null ? 0 : nmField.length);
         nmFieldCounter += nmFieldCount;
       }
-      // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
-      // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
       if (nmFieldCounter > 0) {
-        let confirmNM = 'Group merge field marker detected. Do you want to enable group merge function?';
-        let result = ui.alert('Confirmation', confirmNM, ui.ButtonSet.YES_NO);
-        config.ENABLE_GROUP_MERGE = (result === ui.Button.YES ? true : config.ENABLE_GROUP_MERGE);
+        // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
+        // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
+        let confirmNM = localizedMessage.messageList.alertGroupMergeFieldMarkerDetected;
+        let result = ui.alert(localizedMessage.messageList.alertTitleConfirmation, confirmNM, ui.ButtonSet.YES_NO);
+        config.ENABLE_GROUP_MERGE = (result === ui.Button.YES);
+        console.log(`config.ENABLE_GROUP_MERGE is switched to "${config.ENABLE_GROUP_MERGE}".`); // log
       }
     }
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
-    if (config.ENABLE_GROUP_MERGE === true) {
+    console.log('Composing personalized email...'); // log
+    if (config.ENABLE_GROUP_MERGE) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
-        throw new Error('Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.');
+        throw new Error(localizedMessage.messageList.errorInvalidRECIPIENT_COL_NAME);
       }
       // Create draft or send email for each recipient
       for (let k in groupedMergeData) {
@@ -155,20 +165,22 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
+          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
         };
-        draftMode === true
-          ? GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options)
-          : GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
+        if (draftMode) {
+          GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
+          console.log(`Draft created for ${k} with group merge enabled.`); // log
+        } else {
+          GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
+          console.log(`Mail sent to ${k} with group merge enabled.`); // log
+        }
       }
     } else {
       // Convert the 2d-array merge data into object
       let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
-      for (let i = 0; i < groupedMergeData.data.length; ++i) {
-        let object = groupedMergeData.data[i];
-        let mergeDataObjArr = [];
-        mergeDataObjArr.push(object);
+      groupedMergeData.forEach(obj => {
+        let mergeDataObjArr = [obj];
         let fillInTemplate_options = {
           'excludeFromTemplate': ['attachments'],
           'replaceValue': config.REPLACE_VALUE,
@@ -179,34 +191,28 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'bcc': (config.BCC_TO_MYSELF === true ? myEmail : null)
+          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
         };
-        draftMode === true
-          ? GmailApp.createDraft(object[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options)
-          : GmailApp.sendEmail(object[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-      }
+        if (draftMode) {
+          GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+          console.log(`Draft created for ${k} with group merge disabled.`); // log
+        } else {
+          GmailApp.sendEmail(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+          console.log(`Mail sent to ${k} with group merge disabled.`); // log
+        }
+      });
     }
     // Notification
-    let completeMessage = (draftMode === true
-      ? 'Complete: All draft(s) created.'
-      : 'Complete: All mail(s) sent.');
+    let completeMessage = (draftMode ? localizedMessage.messageList.alertCompleteAllDraftsCreated : localizedMessage.messageList.alertCompleteAllMailsSent);
+    console.log(`Processed all mails.`); // log
     ui.alert(completeMessage);
   } catch (e) {
     let message = errorMessage_(e);
+    console.log(`Alert message: ${message}`); // log
     ui.alert(message);
+  } finally {
+    console.log('...Closing Mail Merge.') // log
   }
-}
-
-/**
- * Process each element of an array with String.prototype.replace()
- * @param {array} array Array containing values to replace.
- * @param {string|RegExp} searchValue A RegExp object or literal, or string to be replaced by replaceValue
- * @param {string} replaceValue String to replace the searchValue.
- * @return {array} Array whose element(s) are replaced.
- */
-function arrReplace_(array, searchValue, replaceValue) {
-  let replacedArray = array.map(value => value.replace(searchValue, replaceValue));
-  return replacedArray;
 }
 
 /**
@@ -225,11 +231,13 @@ function arrReplace_(array, searchValue, replaceValue) {
  */
 function getConfig_(configSheetName = 'Config') {
   // Get values from spreadsheet
-  let configValues = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(configSheetName).getDataRange().getValues();
+  var configValues = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(configSheetName).getDataRange().getValues();
   configValues.shift();
   // Convert the 2d array values into a Javascript object
-  let configObj = {};
-  configValues.forEach(element => configObj[element[0]] = element[1]);
+  var configObj = configValues.reduce((obj, element) => {
+    obj[element[0]] = element[1];
+    return obj
+  }, {});
   // Convert data types
   configObj.BCC_TO_MYSELF = toBoolean_(configObj.BCC_TO_MYSELF);
   configObj.ENABLE_GROUP_MERGE = toBoolean_(configObj.ENABLE_GROUP_MERGE);
@@ -271,45 +279,28 @@ function groupArray_(data, property = null) {
   let index = header.indexOf(property);
   if (property == null) {
     let groupedObj = {};
-    groupedObj['data'] = data.map(function (values) {
-      return header.reduce(function (obj, key, ind) {
-        obj[key] = values[ind];
-        return obj;
-      }, {});
-    });
+    groupedObj['data'] = data.map(values => header.reduce((o, k, i) => {
+      o[k] = values[i];
+      return o;
+    }, {}));
     return groupedObj;
   } else if (index < 0) {
-    let invalidProperty = {};
-    return invalidProperty;
+    return {};
   } else {
-    let groupedObj = data.reduce(
-      function (accObj, curArr) {
-        let key = curArr[index];
-        if (!accObj[key]) {
-          accObj[key] = [];
-        }
-        let rowObj = createObj_(header, curArr);
-        accObj[key].push(rowObj);
-        return accObj;
+    let groupedObj = data.reduce((accObj, curArr) => {
+      let key = curArr[index];
+      if (!accObj[key]) {
+        accObj[key] = [];
+      }
+      let rowObj = header.reduce((o, k, i) => {
+        o[k] = curArr[i];
+        return o;
       }, {});
+      accObj[key].push(rowObj);
+      return accObj;
+    }, {});
     return groupedObj;
   }
-}
-
-/**
- * Create a Javascript object from a set of keys and values
- * i.e., where keys = [key0, key1, ..., key[n]] and values = [value0, value1, ..., value[n]],
- * this function will return an object = {key0: value0, ..., key[n]: value[n]}
- * @param {array} keys 
- * @param {array} values
- * @return {Object} 
- */
-function createObj_(keys, values) {
-  let obj = {};
-  for (let i = 0; i < keys.length; ++i) {
-    obj[keys[i]] = values[i];
-  }
-  return obj;
 }
 
 /**
@@ -353,7 +344,7 @@ function fillInTemplate_(template, data, options) {
     let text = '';
     text = template[k];
     // Group merge
-    if (options.enableGroupMerge === true) {
+    if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
       let groupText = text.match(options.groupFieldMarker);
       // If the number of group field marker is not 0...
