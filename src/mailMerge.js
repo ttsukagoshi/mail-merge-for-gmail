@@ -211,7 +211,7 @@ function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
     console.log(`Alert message: ${message}`); // log
     ui.alert(message);
   } finally {
-    console.log('...Closing Mail Merge.') // log
+    console.log('...Closing Mail Merge.'); // log
   }
 }
 
