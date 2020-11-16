@@ -83,7 +83,7 @@ function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    console.log('Loaded merged data.'); // log
+    console.log('Loaded merge data.'); // log
     // Confirmation before sending email
     let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
