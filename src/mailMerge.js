@@ -47,7 +47,7 @@ function createDraftEmails() {
   console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails(draftMode, config);
+  sendPersonalizedEmails_(draftMode, config);
 }
 
 /**
@@ -59,7 +59,7 @@ function sendEmails() {
   console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails(draftMode, config);
+  sendPersonalizedEmails_(draftMode, config);
 }
 
 /**
@@ -68,13 +68,13 @@ function sendEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
+function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
   var locale = Session.getActiveUserLocale();
   var localizedMessage = new LocalizedMessage(locale);
-  console.log(`Loaded spreadsheet. Language set to ${locale}`); // log
+  console.log(`Loaded spreadsheet. Language set to default of ${myEmail}: ${locale}`); // log
   try {
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
@@ -101,7 +101,9 @@ function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
       throw new Error(localizedMessage.message.errorNoTextEntered);
     }
     console.log(`Entered subject of draft template, loading template "${subjectText}"...`); // log
-    let draftMessage = getDraftBySubject_(subjectText);
+    // Get an array of GmailMessage class objects whose subject matches subjectText.
+    // See https://developers.google.com/apps-script/reference/gmail/gmail-message
+    let draftMessage = GmailApp.getDraftMessages().filter(element => element.getSubject() == subjectText);
     // Check for duplicates
     if (draftMessage.length > 1) {
       throw new Error(localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject);
@@ -207,9 +209,8 @@ function sendPersonalizedEmails(draftMode = true, config = CONFIG) {
     console.log(`Processed all mails.`); // log
     ui.alert(completeMessage);
   } catch (e) {
-    let message = errorMessage_(e);
-    console.log(`Alert message: ${message}`); // log
-    ui.alert(message);
+    console.log(`Alert message: ${e.stack}`); // log
+    ui.alert(e.stack);
   } finally {
     console.log('...Closing Mail Merge.'); // log
   }
@@ -239,31 +240,11 @@ function getConfig_(configSheetName = 'Config') {
     return obj
   }, {});
   // Convert data types
-  configObj.BCC_TO_MYSELF = toBoolean_(configObj.BCC_TO_MYSELF);
-  configObj.ENABLE_GROUP_MERGE = toBoolean_(configObj.ENABLE_GROUP_MERGE);
+  configObj.BCC_TO_MYSELF = (configObj.BCC_TO_MYSELF.toLowerCase() === 'true'); // string -> boolean
+  configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
   configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
   return configObj;
-}
-
-/**
- * Convert string booleans into boolean data
- * @param {string} stringBoolean 
- * @return {boolean}
- */
-function toBoolean_(stringBoolean) {
-  return stringBoolean.toLowerCase() === 'true';
-}
-
-/**
- * Get an array of Gmail message(s) with the designated subject
- * @param {string} subject Subject text of Gmail draft
- * @return {array} Array of GmailMessage class objects. https://developers.google.com/apps-script/reference/gmail/gmail-message
- */
-function getDraftBySubject_(subject) {
-  let draftMessages = GmailApp.getDraftMessages();
-  let targetDrafts = draftMessages.filter(element => element.getSubject() == subject);
-  return targetDrafts;
 }
 
 /**
@@ -397,14 +378,4 @@ function fillInTemplate_(template, data, options) {
     }
   }
   return messageData;
-}
-
-/**
- * Standarized error message
- * @param {Object} e Error object returned by try-catch
- * @return {string} Standarized error message
- */
-function errorMessage_(e) {
-  let message = e.stack;
-  return message;
 }
