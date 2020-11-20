@@ -52,8 +52,9 @@ const MESSAGES = {
 };
 
 class LocalizedMessage {
-  constructor(userLocale = 'en_US') {
-    this.locale = (MESSAGES[userLocale] ? userLocale : 'en_US');
+  constructor(userLocale) {
+    this.DEFAULT_LOCALE = 'en_US';
+    this.locale = (MESSAGES[userLocale] ? userLocale : this.DEFAULT_LOCALE);
     this.messageList = MESSAGES[this.locale];
     Object.keys(MESSAGES.en_US).forEach(key => {
       if (!this.messageList[key]) {
@@ -61,7 +62,6 @@ class LocalizedMessage {
       }
     });
   }
-
   /**
    * Replace placeholder values in the designated text. String.prototype.replace() is executed using regular expressions with the 'global' flag on.
    * @param {string} text 
@@ -72,7 +72,6 @@ class LocalizedMessage {
     let replacedText = placeholderValues.reduce((acc, cur) => acc.replace(new RegExp(cur.regexp, 'g'), cur.value), text);
     return replacedText;
   }
-
   /**
    * Replace placeholder string in this.messageList.alertConfirmAccountCreateDraft or .alertConfirmAccountSendEmail
    * @param {boolean} draftMode
