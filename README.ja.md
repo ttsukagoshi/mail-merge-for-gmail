@@ -1,5 +1,5 @@
 # Gmailのための差し込みメール作成（Mail Merge for Gmail） ([English](https://github.com/ttsukagoshi/mail-merge-for-gmail) / 日本語)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript)  
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)  
 Gmail＋Googleスプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を1通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
 ## 概要
@@ -19,7 +19,7 @@ Gmail＋Googleスプレッドシートを使って、受信者一人ひとり向
 - 初期設定では、宛先メールアドレスを指定するためのフィールド名（列名）は`Email`となっています。これを変える場合はシート「`Config`」内の`RECIPIENT_COL_NAME`を変更してください。
 - 設定を記載しているシート「`Config`」のシート名を変えることは推奨されません。変更にはGoogle Apps Scriptの当該箇所を変更する必要があります。
 - 半角・小文字の`i`は、後述のように「まとめ差し込み」機能のために使用されます。フィールド名（列名）としては使用できませんので、ご注意ください。
-- 宛先リストのセル内改行は、メールをプレーンテキストで送信する場合には反映されます。リッチテキスト（HTMLメール）で送信する場合は改行が反映されませんので、ご注意ください。
+- 宛先リストのセル内改行は差し込み後のメールにも反映されますが、改行以外の、文字色・サイズ・ボールド体といった書式は反映されません。
 
 ### 3. Gmailでテンプレートとなる下書きメールを作成する。
 メールを送信するGmail/G Suiteアカウントにて、テンプレートとなる下書きメールを作成してください。初期設定では、`{{このように二重の中かっこ（半角）で括られた文字列}}`が差し込みフィールドとして認識されます。  
