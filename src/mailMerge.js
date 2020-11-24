@@ -103,31 +103,47 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     console.log(`Entered subject of draft template, loading template "${subjectText}"...`); // log
     // Get an array of GmailMessage class objects whose subject matches subjectText.
     // See https://developers.google.com/apps-script/reference/gmail/gmail-message
-    let draftMessage = GmailApp.getDraftMessages().filter(element => element.getSubject() == subjectText);
+    let draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == subjectText);
     // Check for duplicates
-    if (draftMessage.length > 1) {
+    if (draftMessages.length > 1) {
       throw new Error(localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject);
     }
     // Throw error if no draft template is found
-    if (draftMessage.length == 0) {
+    if (draftMessages.length == 0) {
       throw new Error(localizedMessage.messageList.errorNoMatchingTemplateDraft);
     }
     // Store template into an object
     let template = {
       'subject': subjectText,
-      'plainBody': draftMessage[0].getPlainBody(),
-      'htmlBody': draftMessage[0].getBody(),
-      'attachments': draftMessage[0].getAttachments()
+      'plainBody': draftMessages[0].getPlainBody(),
+      'htmlBody': draftMessages[0].getBody(),
+      'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
+      'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false})
     };
     console.log(`Loaded template: ${JSON.stringify(template)}`); // log
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
+    console.log(`Template is composed in ${(isPlainText ? 'plain text' : 'rich (HTML) text')}.`); // log
+    let inLineImageBlobs = {};
+    if (!isPlainText) {
+      // If the template is composed in HTML, check for in-line images
+      // and create a mapping object of cid (content ID) and its corresponding in-line image blob.
+      console.log(`Checking template for in-line images...`); // log
+      let regExpImgTag = /\<img data-surl\=\"cid\:(?<cidDataSurl>[^\"]+)\"[^\>]+src\=\"cid\:(?<cidSrc>[^\"]+)\"[^\>]+alt\=\"(?<blobName>[^\"]+)\"[^\>]+\>/g;
+      let inLineImageTags = [...template.htmlBody.matchAll(regExpImgTag)];
+      console.log(`${inLineImageTags.length} in-line images detected; ${template.inLineImages.length} in-line attachment data obtained.`); // log
+      inLineImageBlobs = template.inLineImages.reduce((obj, blob) => {
+        let cid = inLineImageTags.find(element => element.groups.blobName == blob.getName()).groups.cidSrc;
+        obj[cid] = blob;
+        return obj;
+      }, {});
+    }
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
     console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
       let nmFieldCounter = 0;
       for (let k in template) {
-        if (k == 'attachments') {
+        if (['attachments', 'inLineImages'].includes(k)) {
           continue; // Skip this process for attachment files
         }
         let nmField = template[k].match(config.GROUP_FIELD_MARKER);
@@ -157,7 +173,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['attachments'],
+          'excludeFromTemplate': ['attachments', 'inLineImages'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -169,6 +185,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'attachments': (messageData.attachments ? messageData.attachments : null),
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
           'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
         };
         if (draftMode) {
@@ -186,7 +203,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       groupedMergeData.data.forEach(obj => {
         let mergeDataObjArr = [obj];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['attachments'],
+          'excludeFromTemplate': ['attachments', 'inLineImages'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -196,6 +213,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'attachments': (messageData.attachments ? messageData.attachments : null),
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
           'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
         };
         if (draftMode) {

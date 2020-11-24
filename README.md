@@ -38,6 +38,7 @@ The group merge field is, by default, marked by double square brackets, i.e., `[
 From the spreadsheet menu `Mail Merge`, you can choose either to `Create Draft` or directly `Send Emails` based on the template. You will be prompted to enter the subject of the template mail that you created in the above Step 3.
 
 #### Notes
+- Attachments in the draft template, including in-line images for HTML drafts, will be preserved in the merge process and sent to each recipient.
 - The boolean value `BCC_TO_MYSELF` in sheet `Config` determines whether or not to include the sender's email address as BCC in each personalized email. The default value is set to `true`; change to `false` if you do not want to set the BCC.
 
 ## Example of Group Merge
