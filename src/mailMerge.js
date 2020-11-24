@@ -15,7 +15,7 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 // Default configurations
-const CONFIG = {
+const DEFAULT_CONFIG = {
   DATA_SHEET_NAME: 'List',
   RECIPIENT_COL_NAME: 'Email',
   BCC_TO_MYSELF: true,
@@ -68,7 +68,7 @@ function sendEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
+function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
@@ -119,6 +119,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       'htmlBody': draftMessage[0].getBody(),
       'attachments': draftMessage[0].getAttachments()
     };
+    console.log(`Loaded template: ${JSON.stringify(template)}`); // log
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
@@ -137,9 +138,9 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
         // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
         let confirmNM = localizedMessage.messageList.alertGroupMergeFieldMarkerDetected;
-        let result = ui.alert(localizedMessage.messageList.alertTitleConfirmation, confirmNM, ui.ButtonSet.YES_NO);
-        config.ENABLE_GROUP_MERGE = (result === ui.Button.YES);
-        console.log(`config.ENABLE_GROUP_MERGE is switched to "${config.ENABLE_GROUP_MERGE}".`); // log
+        let result = (ui.alert(localizedMessage.messageList.alertTitleConfirmation, confirmNM, ui.ButtonSet.YES_NO) === ui.Button.YES);
+        config.ENABLE_GROUP_MERGE = result;
+        console.log(`config.ENABLE_GROUP_MERGE is ${(result ? 'switched to' : 'left at')} "${config.ENABLE_GROUP_MERGE}".`); // log
       }
     }
     // Create draft or send email based on the template.
@@ -157,6 +158,7 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
           'excludeFromTemplate': ['attachments'],
+          'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
           'enableGroupMerge': config.ENABLE_GROUP_MERGE,
@@ -181,10 +183,11 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
       // Convert the 2d-array merge data into object
       let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
-      groupedMergeData.forEach(obj => {
+      groupedMergeData.data.forEach(obj => {
         let mergeDataObjArr = [obj];
         let fillInTemplate_options = {
           'excludeFromTemplate': ['attachments'],
+          'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
           'enableGroupMerge': config.ENABLE_GROUP_MERGE
@@ -197,10 +200,10 @@ function sendPersonalizedEmails_(draftMode = true, config = CONFIG) {
         };
         if (draftMode) {
           GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-          console.log(`Draft created for ${k} with group merge disabled.`); // log
+          console.log(`Draft created for ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
         } else {
           GmailApp.sendEmail(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-          console.log(`Mail sent to ${k} with group merge disabled.`); // log
+          console.log(`Mail sent to ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
         }
       });
     }
@@ -290,6 +293,7 @@ function groupArray_(data, property = null) {
  * @param {array} data Array of object(s) with values to replace markers.
  * @param {Object} options [Optional] Options, as described below.
  * @param {array} options.excludeFromTemplate [Optional] Array of the keys in template to exclude from the replacement process, in strings. 
+ * @param {array} option.asHtml [Optional] Array of the keys in template to regard as HTML formatted.
  * @param {string} options.replaceValue [Optional] String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
  * @param {RegExp} options.mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
  * @param {boolean} options.enableGroupMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
@@ -301,20 +305,23 @@ function fillInTemplate_(template, data, options) {
   if (!('excludeFromTemplate' in options)) {
     options['excludeFromTemplate'] = [];
   }
+  if (!('asHtml' in options)) {
+    options['asHtml'] = [];
+  }
   if (!('replaceValue' in options)) {
-    options['replaceValue'] = CONFIG.REPLACE_VALUE;
+    options['replaceValue'] = DEFAULT_CONFIG.REPLACE_VALUE;
   }
   if (!('mergeFieldMarker' in options)) {
-    options['mergeFieldMarker'] = CONFIG.MERGE_FIELD_MARKER;
+    options['mergeFieldMarker'] = DEFAULT_CONFIG.MERGE_FIELD_MARKER;
   }
   if (!('enableGroupMerge' in options)) {
-    options['enableGroupMerge'] = CONFIG.ENABLE_GROUP_MERGE;
+    options['enableGroupMerge'] = DEFAULT_CONFIG.ENABLE_GROUP_MERGE;
   }
   if (!('groupFieldMarker' in options)) {
-    options['groupFieldMarker'] = CONFIG.GROUP_FIELD_MARKER;
+    options['groupFieldMarker'] = DEFAULT_CONFIG.GROUP_FIELD_MARKER;
   }
   if (!('rowIndexMarker' in options)) {
-    options['rowIndexMarker'] = CONFIG.ROW_INDEX_MARKER;
+    options['rowIndexMarker'] = DEFAULT_CONFIG.ROW_INDEX_MARKER;
   }
   let messageData = {};
   for (let k in template) {
@@ -327,10 +334,10 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupText = text.match(options.groupFieldMarker);
+      let groupTexts = text.match(options.groupFieldMarker);
       // If the number of group field marker is not 0...
-      if (groupText !== null) {
-        let groupTextMerged = groupText.map(function (field) {
+      if (groupTexts !== null) {
+        let groupTextsMerged = groupTexts.map((field) => {
           // Get the text inside group field markers, e.g., [[group field]] => group field
           field = field.substring(2, field.length - 2); // assuming that the text length for opening and closing markers are 2 and 2, respectively
           // Create an array of merge field markers within a group merge marker
@@ -339,25 +346,24 @@ function fillInTemplate_(template, data, options) {
             return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
             let fieldMerged = [];
-            for (let i = 0; i < data.length; ++i) {
-              let datum = data[i];
+            data.forEach((datum, i) => {
               let rowIndex = i + 1;
               let fieldRowIndexed = field.replace(options.rowIndexMarker, rowIndex);
               let fieldVarsCopy = fieldVars.slice();
               // Get the text inside markers, e.g., {{field name}} => field name
               let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-              fieldVarsCopy.forEach(
-                (variable, ind) => fieldRowIndexed = fieldRowIndexed.replace(variable, datum[fieldMarkerText[ind]] || options.replaceValue)
-              );
+              fieldVarsCopy.forEach((variable, ind) => {
+                let replaceValue = datum[fieldMarkerText[ind]] || options.replaceValue;
+                replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
+                fieldRowIndexed = fieldRowIndexed.replace(variable, replaceValue);
+              });
               fieldMerged.push(fieldRowIndexed);
-            }
+            });
             let fieldMergedText = fieldMerged.join('');
             return fieldMergedText;
           }
         });
-        groupText.forEach(
-          (groupField, index) => text = text.replace(groupField, groupTextMerged[index] || options.replaceValue)
-        );
+        groupTexts.forEach((groupField, index) => text = text.replace(groupField, groupTextsMerged[index] || options.replaceValue));
       }
     }
     // merging the rest of the field based on the first row of data object array.
@@ -371,9 +377,11 @@ function fillInTemplate_(template, data, options) {
       let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
       // If no value is available, replace with replaceValue.
-      textVars.forEach(
-        (variable, i) => text = text.replace(variable, mergeData[markerText[i]] || options.replaceValue)
-      );
+      textVars.forEach((variable, ind) => {
+        let replaceValue = mergeData[markerText[ind]] || options.replaceValue;
+        replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
+        text = text.replace(variable, replaceValue);
+      });
       messageData[k] = text;
     }
   }
