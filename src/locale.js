@@ -1,3 +1,5 @@
+/* exported LocalizedMessage  */
+
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,7 +84,7 @@ class LocalizedMessage {
     let text = (draftMode ? this.messageList.alertConfirmAccountCreateDraft : this.messageList.alertConfirmAccountSendEmail);
     let placeholderValues = [
       {
-        'regexp': '\{\{myEmail\}\}',
+        'regexp': '{{myEmail}}',
         'value': myEmail
       }
     ];

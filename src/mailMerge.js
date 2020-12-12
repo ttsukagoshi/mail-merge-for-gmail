@@ -1,3 +1,6 @@
+/* global LocalizedMessage */
+/* exported onOpen, createDraftEmails, sendEmails */
+
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +27,7 @@ const DEFAULT_CONFIG = {
   ENABLE_GROUP_MERGE: false,
   GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
   ROW_INDEX_MARKER: '{{i}}'
-}
+};
 
 // Add spreadsheet menu
 function onOpen() {
@@ -258,7 +261,7 @@ function getConfig_(configSheetName = 'Config') {
   // Convert the 2d array values into a Javascript object
   var configObj = configValues.reduce((obj, element) => {
     obj[element[0]] = element[1];
-    return obj
+    return obj;
   }, {});
   // Convert data types
   configObj.BCC_TO_MYSELF = (configObj.BCC_TO_MYSELF.toLowerCase() === 'true'); // string -> boolean
