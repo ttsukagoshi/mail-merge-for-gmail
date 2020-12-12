@@ -84,7 +84,7 @@ class LocalizedMessage {
     let text = (draftMode ? this.messageList.alertConfirmAccountCreateDraft : this.messageList.alertConfirmAccountSendEmail);
     let placeholderValues = [
       {
-        'regexp': '{{myEmail}}',
+        'regexp': '\{\{myEmail\}\}',
         'value': myEmail
       }
     ];
