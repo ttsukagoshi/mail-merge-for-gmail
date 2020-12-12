@@ -1,3 +1,5 @@
+/* exported LocalizedMessage  */
+
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
