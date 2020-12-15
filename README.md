@@ -1,5 +1,5 @@
 # Mail Merge for Gmail (English / [日本語](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md))
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)  
+[![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 Send personalized emails based on Gmail template to multiple recipients using Gmail, Google Spreadsheet, and Google Apps Script. The **Group Merge** feature, which allows the sender to group the contents of two or more rows into one row for a single recipient, is available.
 
 ## Overview
