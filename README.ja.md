@@ -1,5 +1,5 @@
 # Gmailのための差し込みメール作成（Mail Merge for Gmail） ([English](https://github.com/ttsukagoshi/mail-merge-for-gmail) / 日本語)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/context:javascript) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)  
+[![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 Gmail＋Googleスプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を1通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
 ## 概要
