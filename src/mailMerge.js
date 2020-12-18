@@ -21,7 +21,6 @@
 const DEFAULT_CONFIG = {
   DATA_SHEET_NAME: 'List',
   RECIPIENT_COL_NAME: 'Email',
-  BCC_TO_MYSELF: true,
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_GROUP_MERGE: false,
@@ -245,7 +244,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
  * The sheet should have a first row of headers, and its first column should include the following properties:
  * @property {string} DATA_SHEET_NAME Name of sheet in which field(s) to merge in email are stored
  * @property {string} RECIPIENT_COL_NAME Name of column in sheet 'DATA_SHEET_NAME' that designates the email address of the recipient
- * @property {string} BCC_TO_MYSELF String boolean. When true, will send (or create draft) email with the sender's address set to BCC.
  * @property {string} REPLACE_VALUE Text that will replace empty data of marker. 
  * @property {string} MERGE_FIELD_MARKER Text to be processed in RegExp() constructor to define merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
  * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
@@ -262,7 +260,6 @@ function getConfig_(configSheetName = 'Config') {
     return obj;
   }, {});
   // Convert data types
-  configObj.BCC_TO_MYSELF = (configObj.BCC_TO_MYSELF.toLowerCase() === 'true'); // string -> boolean
   configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
   configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
