@@ -1,6 +1,3 @@
-/* global LocalizedMessage */
-/* exported onOpen, createDraftEmails, sendEmails */
-
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +13,9 @@
 // limitations under the License.
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
+
+/* global LocalizedMessage */
+/* exported onOpen, createDraftEmails, sendEmails */
 
 // Default configurations
 const DEFAULT_CONFIG = {

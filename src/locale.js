@@ -1,5 +1,3 @@
-/* exported LocalizedMessage  */
-
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +13,8 @@
 // limitations under the License.
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
+
+/* exported LocalizedMessage  */
 
 const MESSAGES = {
   'en_US': {
