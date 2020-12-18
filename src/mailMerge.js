@@ -1,6 +1,3 @@
-/* global LocalizedMessage */
-/* exported onOpen, createDraftEmails, sendEmails */
-
 // Copyright 2020 Taro TSUKAGOSHI
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +14,13 @@
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
+/* global LocalizedMessage */
+/* exported onOpen, createDraftEmails, sendEmails */
+
 // Default configurations
 const DEFAULT_CONFIG = {
   DATA_SHEET_NAME: 'List',
   RECIPIENT_COL_NAME: 'Email',
-  BCC_TO_MYSELF: true,
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_GROUP_MERGE: false,
@@ -47,7 +46,6 @@ function onOpen() {
 function createDraftEmails() {
   console.log('Initiating Mail Merge for Gmail on Draft Mode...'); // log
   var draftMode = true;
-  console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
   sendPersonalizedEmails_(draftMode, config);
@@ -59,7 +57,6 @@ function createDraftEmails() {
 function sendEmails() {
   console.log('Initiating Mail Merge for Gmail on Send Mode...'); // log
   var draftMode = false;
-  console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
   sendPersonalizedEmails_(draftMode, config);
@@ -86,14 +83,12 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    console.log('Loaded merge data.'); // log
     // Confirmation before sending email
     let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
       throw new Error(localizedMessage.messageList.errorCanceled);
     }
-    console.log(`Account confirmed manually: ${myEmail}`); // log
     // Get template from Gmail draft
     let promptMessage = localizedMessage.messageList.promptEnterSubjectOfTemplateDraft;
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
@@ -120,6 +115,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'subject': subjectText,
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
+      'ccTo': draftMessages[0].getCc(),
+      'bccTo': draftMessages[0].getBcc(),
       'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
       'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false})
     };
@@ -131,7 +128,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     if (!isPlainText) {
       // If the template is composed in HTML, check for in-line images
       // and create a mapping object of cid (content ID) and its corresponding in-line image blob.
-      console.log(`Checking template for in-line images...`); // log
       let regExpImgTag = /\<img data-surl\=\"cid\:(?<cidDataSurl>[^\"]+)\"[^\>]+src\=\"cid\:(?<cidSrc>[^\"]+)\"[^\>]+alt\=\"(?<blobName>[^\"]+)\"[^\>]+\>/g;
       let inLineImageTags = [...template.htmlBody.matchAll(regExpImgTag)];
       console.log(`${inLineImageTags.length} in-line images detected; ${template.inLineImages.length} in-line attachment data obtained.`); // log
@@ -144,16 +140,16 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
     console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
-      let nmFieldCounter = 0;
+      let groupMergeFieldCounter = 0;
       for (let k in template) {
-        if (['attachments', 'inLineImages'].includes(k)) {
-          continue; // Skip this process for attachment files
+        if (['ccTo', 'bccTo', 'attachments', 'inLineImages'].includes(k)) {
+          continue; // Skip this process for CC/BCC recipients and attachment files
         }
-        let nmField = template[k].match(config.GROUP_FIELD_MARKER);
-        let nmFieldCount = (nmField === null ? 0 : nmField.length);
-        nmFieldCounter += nmFieldCount;
+        let groupMergeField = template[k].match(config.GROUP_FIELD_MARKER);
+        let groupMergeFieldCount = (groupMergeField === null ? 0 : groupMergeField.length);
+        groupMergeFieldCounter += groupMergeFieldCount;
       }
-      if (nmFieldCounter > 0) {
+      if (groupMergeFieldCounter > 0) {
         // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
         // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
         let confirmNM = localizedMessage.messageList.alertGroupMergeFieldMarkerDetected;
@@ -164,7 +160,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     }
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
-    console.log('Composing personalized email...'); // log
     if (config.ENABLE_GROUP_MERGE) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
@@ -176,7 +171,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['attachments', 'inLineImages'],
+          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -187,9 +182,10 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'cc': messageData.ccTo,
+          'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
           GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
@@ -215,9 +211,10 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'cc': messageData.ccTo,
+          'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
           GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
@@ -247,7 +244,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
  * The sheet should have a first row of headers, and its first column should include the following properties:
  * @property {string} DATA_SHEET_NAME Name of sheet in which field(s) to merge in email are stored
  * @property {string} RECIPIENT_COL_NAME Name of column in sheet 'DATA_SHEET_NAME' that designates the email address of the recipient
- * @property {string} BCC_TO_MYSELF String boolean. When true, will send (or create draft) email with the sender's address set to BCC.
  * @property {string} REPLACE_VALUE Text that will replace empty data of marker. 
  * @property {string} MERGE_FIELD_MARKER Text to be processed in RegExp() constructor to define merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
  * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
@@ -264,7 +260,6 @@ function getConfig_(configSheetName = 'Config') {
     return obj;
   }, {});
   // Convert data types
-  configObj.BCC_TO_MYSELF = (configObj.BCC_TO_MYSELF.toLowerCase() === 'true'); // string -> boolean
   configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
   configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');

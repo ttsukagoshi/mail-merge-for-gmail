@@ -22,7 +22,8 @@ Edit your spreadsheet in any way you want to. If you want to change the sheet na
 - Line breaks within a spreadsheet cell, but not the text stylings like color and bold fonts, will be reflected in the merged mail.
 
 ### 3. Create a template draft on Gmail
-Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). Files can be attached to the draft to be reflected on the personlized emails. If HTML mail is enabled, text styles of the draft template will also be carried over.
+Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). Files can be attached to the draft to be reflected on the personalized emails. If HTML mail is enabled, text styles of the draft template will also be carried over.  
+Recipients that are CC'd and BCC'd in the template will be reflected in the personalized emails.
 
 #### Group Merge
 In a case where there are two or more entries in your list with the same recipient, you might want to group the entries into a single email rather than sending the recipient similar emails more than once. Group merge enables you to specify which field to list individually and which to combine in an email, as shown in [the example below](https://github.com/ttsukagoshi/mail-merge-for-gmail#example-of-group-merge).
@@ -39,7 +40,6 @@ From the spreadsheet menu `Mail Merge`, you can choose either to `Create Draft` 
 
 #### Notes
 - Attachments in the draft template, including in-line images for HTML drafts, will be preserved in the merge process and sent to each recipient.
-- The boolean value `BCC_TO_MYSELF` in sheet `Config` determines whether or not to include the sender's email address as BCC in each personalized email. The default value is set to `true`; change to `false` if you do not want to set the BCC.
 
 ## Example of Group Merge
 Given a list of email addresses below:
