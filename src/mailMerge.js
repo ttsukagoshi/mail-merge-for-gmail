@@ -118,7 +118,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'ccTo': draftMessages[0].getCc(),
       'bccTo': draftMessages[0].getBcc(),
       'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
-      'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false})
+      'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false}),
+      'labels': draftMessages[0].getThread().getLabels()
     };
     console.log(`Loaded template: ${JSON.stringify(template)}`); // log
     // Check template format; plain or HTML text.
@@ -142,7 +143,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     if (!config.ENABLE_GROUP_MERGE) {
       let groupMergeFieldCounter = 0;
       for (let k in template) {
-        if (['ccTo', 'bccTo', 'attachments', 'inLineImages'].includes(k)) {
+        if (['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'].includes(k)) {
           continue; // Skip this process for CC/BCC recipients and attachment files
         }
         let groupMergeField = template[k].match(config.GROUP_FIELD_MARKER);
@@ -171,7 +172,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages'],
+          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -188,7 +189,9 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
-          GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
+          let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
+          let draftThread = draft.getMessage().getThread();
+          messageData.labels.forEach(label => draftThread.addLabel(label));
           console.log(`Draft created for ${k} with group merge enabled.`); // log
         } else {
           GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
@@ -202,7 +205,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       groupedMergeData.data.forEach(obj => {
         let mergeDataObjArr = [obj];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['attachments', 'inLineImages'],
+          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -217,7 +220,9 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
-          GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+          let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+          let draftThread = draft.getMessage().getThread();
+          messageData.labels.forEach(label => draftThread.addLabel(label));
           console.log(`Draft created for ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
         } else {
           GmailApp.sendEmail(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
