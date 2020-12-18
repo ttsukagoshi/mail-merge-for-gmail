@@ -140,16 +140,16 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
     console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
-      let nmFieldCounter = 0;
+      let groupMergeFieldCounter = 0;
       for (let k in template) {
         if (['ccTo', 'bccTo', 'attachments', 'inLineImages'].includes(k)) {
           continue; // Skip this process for CC/BCC recipients and attachment files
         }
-        let nmField = template[k].match(config.GROUP_FIELD_MARKER);
-        let nmFieldCount = (nmField === null ? 0 : nmField.length);
-        nmFieldCounter += nmFieldCount;
+        let groupMergeField = template[k].match(config.GROUP_FIELD_MARKER);
+        let groupMergeFieldCount = (groupMergeField === null ? 0 : groupMergeField.length);
+        groupMergeFieldCounter += groupMergeFieldCount;
       }
-      if (nmFieldCounter > 0) {
+      if (groupMergeFieldCounter > 0) {
         // If group merge field marker is detected in the template when ENABLE_GROUP_MERGE is set to false,
         // ask whether or not to enable this function, i.e., to change ENABLE_GROUP_MERGE to true.
         let confirmNM = localizedMessage.messageList.alertGroupMergeFieldMarkerDetected;
