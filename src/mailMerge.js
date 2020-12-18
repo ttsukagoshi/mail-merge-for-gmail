@@ -47,7 +47,6 @@ function onOpen() {
 function createDraftEmails() {
   console.log('Initiating Mail Merge for Gmail on Draft Mode...'); // log
   var draftMode = true;
-  console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
   sendPersonalizedEmails_(draftMode, config);
@@ -59,7 +58,6 @@ function createDraftEmails() {
 function sendEmails() {
   console.log('Initiating Mail Merge for Gmail on Send Mode...'); // log
   var draftMode = false;
-  console.log('Loading config...'); // log
   var config = getConfig_('Config');
   console.log(`config: ${JSON.stringify(config)}`); // log
   sendPersonalizedEmails_(draftMode, config);
@@ -86,14 +84,12 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    console.log('Loaded merge data.'); // log
     // Confirmation before sending email
     let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
       throw new Error(localizedMessage.messageList.errorCanceled);
     }
-    console.log(`Account confirmed manually: ${myEmail}`); // log
     // Get template from Gmail draft
     let promptMessage = localizedMessage.messageList.promptEnterSubjectOfTemplateDraft;
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
@@ -120,6 +116,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'subject': subjectText,
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
+      'ccTo': draftMessages[0].getCc(),
+      'bccTo': draftMessages[0].getBcc(),
       'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
       'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false})
     };
@@ -131,7 +129,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     if (!isPlainText) {
       // If the template is composed in HTML, check for in-line images
       // and create a mapping object of cid (content ID) and its corresponding in-line image blob.
-      console.log(`Checking template for in-line images...`); // log
       let regExpImgTag = /\<img data-surl\=\"cid\:(?<cidDataSurl>[^\"]+)\"[^\>]+src\=\"cid\:(?<cidSrc>[^\"]+)\"[^\>]+alt\=\"(?<blobName>[^\"]+)\"[^\>]+\>/g;
       let inLineImageTags = [...template.htmlBody.matchAll(regExpImgTag)];
       console.log(`${inLineImageTags.length} in-line images detected; ${template.inLineImages.length} in-line attachment data obtained.`); // log
@@ -146,8 +143,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     if (!config.ENABLE_GROUP_MERGE) {
       let nmFieldCounter = 0;
       for (let k in template) {
-        if (['attachments', 'inLineImages'].includes(k)) {
-          continue; // Skip this process for attachment files
+        if (['ccTo', 'bccTo', 'attachments', 'inLineImages'].includes(k)) {
+          continue; // Skip this process for CC/BCC recipients and attachment files
         }
         let nmField = template[k].match(config.GROUP_FIELD_MARKER);
         let nmFieldCount = (nmField === null ? 0 : nmField.length);
@@ -164,7 +161,6 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     }
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
-    console.log('Composing personalized email...'); // log
     if (config.ENABLE_GROUP_MERGE) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
@@ -176,7 +172,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['attachments', 'inLineImages'],
+          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages'],
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -187,9 +183,10 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'cc': messageData.ccTo,
+          'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
           GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
@@ -215,9 +212,10 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'cc': messageData.ccTo,
+          'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'bcc': (config.BCC_TO_MYSELF ? myEmail : null)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs)
         };
         if (draftMode) {
           GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
