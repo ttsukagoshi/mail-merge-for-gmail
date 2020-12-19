@@ -32,7 +32,8 @@ const MESSAGES = {
     'alertTitleConfirmation': 'Confirmation',
     'errorInvalidRECIPIENT_COL_NAME': 'Invalid RECIPIENT_COL_NAME. Check sheet "Config" to make sure it refers to an existing column name.',
     'alertCompleteAllDraftsCreated': 'Complete: All draft(s) created.',
-    'alertCompleteAllMailsSent': 'Complete: All mail(s) sent.'
+    'alertCompleteAllMailsSent': 'Complete: All mail(s) sent.',
+    'alertSkippedLabeling': '\nLabeling was skipped for {{skipLabelingCount}} messages. See log for details at https://script.google.com/home/projects/{{scriptId}}/executions?run_as=1'
   },
   'ja': {
     'menuName': 'Mail Merge（メール差込）',
@@ -49,7 +50,8 @@ const MESSAGES = {
     'alertTitleConfirmation': '確認',
     'errorInvalidRECIPIENT_COL_NAME': '無効な RECIPIENT_COL_NAME 。設定（Config）シートで、実際に存在するフィールド（列）が指定されていることを確認してください。',
     'alertCompleteAllDraftsCreated': '完了：すべての下書きが作成されました。',
-    'alertCompleteAllMailsSent': '完了：すべての差し込みメールの送信が完了しました。'
+    'alertCompleteAllMailsSent': '完了：すべての差し込みメールの送信が完了しました。',
+    'alertSkippedLabeling': '\n{{skipLabelingCount}}通のメールについて、ラベル付け処理がスキップされました。詳細は次のURLからログを確認してください： https://script.google.com/home/projects/{{scriptId}}/executions?run_as=1'
   }
 };
 
@@ -86,6 +88,27 @@ class LocalizedMessage {
       {
         'regexp': '\{\{myEmail\}\}',
         'value': myEmail
+      }
+    ];
+    text = this.replacePlaceholders_(text, placeholderValues);
+    return text;
+  }
+  /**
+   * Replace placeholder string in this.messageList.alertSkippedLabeling
+   * @param {string} skipLabelingCount
+   * @param {string} scriptId
+   * @returns {string} The replaced text.
+   */
+  replaceAlertSkippedLabeling(skipLabelingCount, scriptId) {
+    let text = this.messageList.alertSkippedLabeling;
+    let placeholderValues = [
+      {
+        'regexp': '\{\{skipLabelingCount\}\}',
+        'value': skipLabelingCount
+      },
+      {
+        'regexp': '\{\{scriptId\}\}',
+        'value': scriptId
       }
     ];
     text = this.replacePlaceholders_(text, placeholderValues);
