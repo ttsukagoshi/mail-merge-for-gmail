@@ -203,7 +203,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
             skipLabelingCount += 1;
             console.log(`Labeling skipped for mail to ${k}.`); //log
           } else {
-            messageData.labels.forEach(label => threadJustSent.addLabel.addLabel(label));
+            messageData.labels.forEach(label => threadJustSent.addLabel(label));
           }
         }
       }
@@ -241,7 +241,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
             skipLabelingCount += 1;
             console.log(`Labeling skipped for mail to ${obj[config.RECIPIENT_COL_NAME]}.`); //log
           } else {
-            messageData.labels.forEach(label => threadJustSent.addLabel.addLabel(label));
+            messageData.labels.forEach(label => threadJustSent.addLabel(label));
           }
         }
       });
