@@ -74,6 +74,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
   var myEmail = Session.getActiveUser().getEmail();
   var locale = Session.getActiveUserLocale();
   var localizedMessage = new LocalizedMessage(locale);
+  var skipLabelingCount = 0;
+  var scriptId = ScriptApp.getScriptId();
   console.log(`Loaded spreadsheet. Language set to default of ${myEmail}: ${locale}`); // log
   try {
     // Get data of field(s) to merge in form of 2d array
@@ -196,6 +198,13 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         } else {
           GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
           console.log(`Mail sent to ${k} with group merge enabled.`); // log
+          let threadJustSent = GmailApp.search('in:sent', 0, 1)[0];
+          if (threadJustSent.getFirstMessageSubject() !== messageData.subject) {
+            skipLabelingCount += 1;
+            console.log(`Labeling skipped for mail to ${k}.`); //log
+          } else {
+            messageData.labels.forEach(label => threadJustSent.addLabel.addLabel(label));
+          }
         }
       }
     } else {
@@ -227,12 +236,22 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         } else {
           GmailApp.sendEmail(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
           console.log(`Mail sent to ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
+          let threadJustSent = GmailApp.search('in:sent', 0, 1)[0];
+          if (threadJustSent.getFirstMessageSubject() !== messageData.subject) {
+            skipLabelingCount += 1;
+            console.log(`Labeling skipped for mail to ${obj[config.RECIPIENT_COL_NAME]}.`); //log
+          } else {
+            messageData.labels.forEach(label => threadJustSent.addLabel.addLabel(label));
+          }
         }
       });
     }
     // Notification
-    let completeMessage = (draftMode ? localizedMessage.messageList.alertCompleteAllDraftsCreated : localizedMessage.messageList.alertCompleteAllMailsSent);
     console.log(`Processed all mails.`); // log
+    let completeMessage = (draftMode ? localizedMessage.messageList.alertCompleteAllDraftsCreated : localizedMessage.messageList.alertCompleteAllMailsSent);
+    if (skipLabelingCount > 0) {
+      completeMessage += localizedMessage.replaceAlertSkippedLabeling(skipLabelingCount, scriptId);
+    }
     ui.alert(completeMessage);
   } catch (e) {
     console.log(`Alert message: ${e.stack}`); // log
