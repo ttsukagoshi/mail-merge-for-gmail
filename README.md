@@ -22,9 +22,13 @@ Edit your spreadsheet in any way you want to. If you want to change the sheet na
 - Line breaks within a spreadsheet cell, but not the text stylings like color and bold fonts, will be reflected in the merged mail.
 
 ### 3. Create a template draft on Gmail
-Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive). Files can be attached to the draft to be reflected on the personalized emails. If HTML mail is enabled, text styles of the draft template will also be carried over.  
-Recipients that are CC'd and BCC'd in the template will be reflected in the personalized emails.
-
+Create a Gmail draft to serve as the template. By default, the merge fields are specified by double curly brackets, i.e., `Dear {{Name}},... `. The field names should correspond with the column names of the spreadsheet (case-sensitive).
+#### Properties Reflected on the Personalized Emails
+The below lists the properties of the template (Gmail draft) that are reflected as-is in the personalized email(s):  
+- CC and BCC recipients
+- File attachments
+- In-line image attachments (when HTML styling is enabled)
+- Gmail labels
 #### Group Merge
 In a case where there are two or more entries in your list with the same recipient, you might want to group the entries into a single email rather than sending the recipient similar emails more than once. Group merge enables you to specify which field to list individually and which to combine in an email, as shown in [the example below](https://github.com/ttsukagoshi/mail-merge-for-gmail#example-of-group-merge).
 
