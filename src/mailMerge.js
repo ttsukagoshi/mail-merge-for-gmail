@@ -80,8 +80,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
   try {
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
-    let mergeDataRange = dataSheet.getDataRange().setNumberFormat('@'); // Convert all formatted dates and numbers into texts
-    let mergeData = mergeDataRange.getValues();
+    let mergeData = dataSheet.getDataRange().getDisplayValues();
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
