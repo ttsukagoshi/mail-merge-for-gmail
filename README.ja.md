@@ -117,6 +117,9 @@ Gmail＋Googleスプレッドシートを使って、受信者一人ひとり向
 - まとめ差し込みで使うインデックス番号`{{i}}`も、同じくシート「`Config`」内で設定変更できます。
 - HTMLメールを送ろうと思っている人がマーカーを変更するのであれば、変更後のマーカーがHTML形式のメールで使われるHTMLタグ等と競合しないことを十分に確認の上、変更してください。
 
+## 利用規約
+サンプルシートに基づく利用は[利用規約](https://ttsukagoshi.github.io/scriptable-assets/terms-and-conditions/)への同意が必要となります。
+
 ## 謝辞
 This work was inspired by [Tutorial: Simple Mail Merge (Google Apps Script Tutorial)](https://developers.google.com/apps-script/articles/mail_merge).
 
