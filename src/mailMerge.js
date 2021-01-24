@@ -76,6 +76,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
   var localizedMessage = new LocalizedMessage(locale);
   var skipLabelingCount = 0;
   var scriptId = ScriptApp.getScriptId();
+  var noPlaceholder = ['ccTo', 'bccTo', 'from', 'attachments', 'inLineImages', 'labels'];
   console.log(`Loaded spreadsheet. Language set to default of ${myEmail}: ${locale}`); // log
   try {
     // Get data of field(s) to merge in form of 2d array
@@ -116,6 +117,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'subject': subjectText,
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
+      'from': draftMessages[0].getFrom(),
       'ccTo': draftMessages[0].getCc(),
       'bccTo': draftMessages[0].getBcc(),
       'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
@@ -142,10 +144,11 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     // Check for consistency between config.ENABLE_GROUP_MERGE and template
     console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
+      // Check if values in object 'template' comprise group merge markers
       let groupMergeFieldCounter = 0;
       for (let k in template) {
-        if (['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'].includes(k)) {
-          continue; // Skip this process for CC/BCC recipients and attachment files
+        if (noPlaceholder.includes(k)) {
+          continue; // Skip this process for keys in noPlaceholder
         }
         let groupMergeField = template[k].match(config.GROUP_FIELD_MARKER);
         let groupMergeFieldCount = (groupMergeField === null ? 0 : groupMergeField.length);
@@ -173,7 +176,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       for (let k in groupedMergeData) {
         let mergeDataObjArr = groupedMergeData[k];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'],
+          'excludeFromTemplate': noPlaceholder,
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -184,6 +187,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'from': messageData.from,
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
@@ -213,7 +217,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       groupedMergeData.data.forEach(obj => {
         let mergeDataObjArr = [obj];
         let fillInTemplate_options = {
-          'excludeFromTemplate': ['ccTo', 'bccTo', 'attachments', 'inLineImages', 'labels'],
+          'excludeFromTemplate': noPlaceholder,
           'asHtml': ['htmlBody'],
           'replaceValue': config.REPLACE_VALUE,
           'mergeFieldMarker': config.MERGE_FIELD_MARKER,
@@ -222,6 +226,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
+          'from': messageData.from,
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),

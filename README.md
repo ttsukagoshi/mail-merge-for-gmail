@@ -111,6 +111,9 @@ We look forward to seeing you!
 - The index field marker for group merge `{{i}}` can also be modified through the value `ROW_INDEX_MARKER` in sheet `Config`.
 - If HTML is enabled in your Gmail, make sure that your modified markers can still be detected in the HTML string.
 
+## Terms and Conditions
+You must agree to the [Terms and Conditions](https://ttsukagoshi.github.io/scriptable-assets/terms-and-conditions/) to use this solution.
+
 ## Acknowledgements
 This work was inspired by [Tutorial: Simple Mail Merge (Google Apps Script Tutorial)](https://developers.google.com/apps-script/articles/mail_merge).
 
