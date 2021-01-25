@@ -25,7 +25,9 @@ const DEFAULT_CONFIG = {
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_GROUP_MERGE: false,
   GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
-  ROW_INDEX_MARKER: '{{i}}'
+  ROW_INDEX_MARKER: '{{i}}',
+  ENABLE_REPLY_TO: false,
+  REPLY_TO: 'replyTo@email.com'
 };
 
 // Add spreadsheet menu
@@ -122,7 +124,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'bccTo': draftMessages[0].getBcc(),
       'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
       'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false}),
-      'labels': draftMessages[0].getThread().getLabels()
+      'labels': draftMessages[0].getThread().getLabels(),
+      'replyTo': (config.ENABLE_REPLY_TO ? config.REPLY_TO : '')
     };
     console.log(`Loaded template: ${JSON.stringify(template)}`); // log
     // Check template format; plain or HTML text.
@@ -141,7 +144,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         return obj;
       }, {});
     }
-    // Check for consistency between config.ENABLE_GROUP_MERGE and template
+    // Check for inconsistencies between config.ENABLE_GROUP_MERGE and template
     console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
       // Check if values in object 'template' comprise group merge markers
@@ -191,7 +194,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
+          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         if (draftMode) {
           let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
@@ -230,7 +234,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
+          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         if (draftMode) {
           let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
@@ -277,6 +282,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
  * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
  * @property {string} GROUP_FIELD_MARKER Text to be processed in RegExp() constructor to define group merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
  * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a group merge.
+ * @property {string} ENABLE_REPLY_TO String boolean. Enable setting of reply-to in the merged mails when true.
+ * @property {string} REPLY_TO [Required if ENABLE_REPLY_TO is true] The email address to set as reply-to. Placeholders can be used to set the value depending on the individual data.
  */
 function getConfig_(configSheetName = 'Config') {
   // Get values from spreadsheet
@@ -291,6 +298,7 @@ function getConfig_(configSheetName = 'Config') {
   configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
   configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
+  configObj.ENABLE_REPLY_TO = (configObj.ENABLE_REPLY_TO.toLowerCase() === 'true'); // string -> boolean
   return configObj;
 }
 
