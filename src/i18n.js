@@ -60,9 +60,9 @@ class LocalizedMessage {
     this.DEFAULT_LOCALE = 'en_US';
     this.locale = (MESSAGES[userLocale] ? userLocale : this.DEFAULT_LOCALE);
     this.messageList = MESSAGES[this.locale];
-    Object.keys(MESSAGES.en_US).forEach(key => {
+    Object.keys(MESSAGES[this.DEFAULT_LOCALE]).forEach(key => {
       if (!this.messageList[key]) {
-        this.messageList[key] = MESSAGES.en_US[key];
+        this.messageList[key] = MESSAGES[this.DEFAULT_LOCALE][key];
       }
     });
   }
