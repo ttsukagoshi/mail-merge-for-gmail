@@ -19,7 +19,8 @@
 const MESSAGES = {
   'en_US': {
     'menuName': 'Mail Merge',
-    'menuCreateDraft': 'Create Draft',
+    'menuCreateDrafts': 'Create Drafts',
+    'menuSendDrafts': 'Send the Created Drafts (beta)',
     'menuSendEmails': 'Send Emails',
     'alertConfirmAccountCreateDraft': 'Are you sure you want to create draft email(s) as {{myEmail}}?',
     'alertConfirmAccountSendEmail': 'Are you sure you want to send email(s) as {{myEmail}}?',
@@ -37,7 +38,8 @@ const MESSAGES = {
   },
   'ja': {
     'menuName': 'Mail Merge（メール差込）',
-    'menuCreateDraft': 'テスト差込（メール下書き作成）',
+    'menuCreateDrafts': 'テスト差込（下書きメール作成）',
+    'menuSendDrafts': '作成済みの下書きメールを送信 (beta)',
     'menuSendEmails': '差込み送信（メール送信）',
     'alertConfirmAccountCreateDraft': '{{myEmail}}として差し込みメールを作成し、下書きとして保存します。',
     'alertConfirmAccountSendEmail': '{{myEmail}}として差し込みメールを作成し、送信します。',

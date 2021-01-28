@@ -36,7 +36,8 @@ function onOpen() {
   var localizedMessage = new LocalizedMessage(locale);
   SpreadsheetApp.getUi()
     .createMenu(localizedMessage.messageList.menuName)
-    .addItem(localizedMessage.messageList.menuCreateDraft, 'createDraftEmails')
+    .addItem(localizedMessage.messageList.menuCreateDrafts, 'createDraftEmails')
+    .addItem(localizedMessage.messageList.menuSendDrafts, 'sendDrafts')
     .addSeparator()
     .addItem(localizedMessage.messageList.menuSendEmails, 'sendEmails')
     .addToUi();
@@ -46,22 +47,33 @@ function onOpen() {
  * Create draft of personalized email(s)
  */
 function createDraftEmails() {
-  console.log('Initiating Mail Merge for Gmail on Draft Mode...'); // log
+  console.log('[createDraftEmails] Initiating: Mail Merge for Gmail on Draft Mode...'); // log
   var draftMode = true;
   var config = getConfig_('Config');
-  console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails_(draftMode, config);
+  console.log(`[createDraftEmails] config: ${JSON.stringify(config)}`); // log
+  mailMerge(draftMode, config);
+  console.log('[createDraftEmails] Completed: Mail Merge for Gmail on Draft Mode.'); // log
+}
+
+/**
+ * Send the drafts created by createDraftEmails()
+ */
+function sendDrafts() {
+  console.log('[sendDrafts] Initiating: Sending the drafts created by createDraftEmails()...'); // log
+  /////
+  console.log('[sendDrafts] Completed: Sent emails created by createDraftEmails()'); // log
 }
 
 /**
  * Send personalized email(s)
  */
 function sendEmails() {
-  console.log('Initiating Mail Merge for Gmail on Send Mode...'); // log
+  console.log('[sendEmails] Initiating: Mail Merge for Gmail on Send Mode...'); // log
   var draftMode = false;
   var config = getConfig_('Config');
-  console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails_(draftMode, config);
+  console.log(`[sendEmails] config: ${JSON.stringify(config)}`); // log
+  mailMerge(draftMode, config);
+  console.log('[sendEmails] Completed: Mail Merge for Gmail on Send Mode.'); // log
 }
 
 /**
@@ -70,7 +82,7 @@ function sendEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
+function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
