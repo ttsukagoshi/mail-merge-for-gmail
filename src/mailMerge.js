@@ -15,7 +15,7 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported onOpen, createDraftEmails, sendEmails */
+/* exported onOpen, createDraftEmails, sendDrafts, sendEmails */
 
 // Default configurations
 const DEFAULT_CONFIG = {
@@ -25,7 +25,9 @@ const DEFAULT_CONFIG = {
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
   ENABLE_GROUP_MERGE: false,
   GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
-  ROW_INDEX_MARKER: '{{i}}'
+  ROW_INDEX_MARKER: '{{i}}',
+  ENABLE_REPLY_TO: false,
+  REPLY_TO: 'replyTo@email.com'
 };
 
 // Add spreadsheet menu
@@ -34,7 +36,8 @@ function onOpen() {
   var localizedMessage = new LocalizedMessage(locale);
   SpreadsheetApp.getUi()
     .createMenu(localizedMessage.messageList.menuName)
-    .addItem(localizedMessage.messageList.menuCreateDraft, 'createDraftEmails')
+    .addItem(localizedMessage.messageList.menuCreateDrafts, 'createDraftEmails')
+    .addItem(localizedMessage.messageList.menuSendDrafts, 'sendDrafts')
     .addSeparator()
     .addItem(localizedMessage.messageList.menuSendEmails, 'sendEmails')
     .addToUi();
@@ -44,22 +47,62 @@ function onOpen() {
  * Create draft of personalized email(s)
  */
 function createDraftEmails() {
-  console.log('Initiating Mail Merge for Gmail on Draft Mode...'); // log
+  console.log('[createDraftEmails] Initiating: Mail Merge for Gmail on Draft Mode...'); // log
   var draftMode = true;
   var config = getConfig_('Config');
-  console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails_(draftMode, config);
+  console.log(`[createDraftEmails] config: ${JSON.stringify(config)}`); // log
+  mailMerge(draftMode, config);
+  console.log('[createDraftEmails] Completed: Mail Merge for Gmail on Draft Mode.'); // log
+}
+
+/**
+ * Send the drafts created by createDraftEmails()
+ */
+function sendDrafts() {
+  console.log('[sendDrafts] Initiating: Sending the drafts created by createDraftEmails()...'); // log
+  var dp = PropertiesService.getDocumentProperties();
+  var ui = SpreadsheetApp.getUi();
+  var myEmail = Session.getActiveUser().getEmail();
+  var locale = Session.getActiveUserLocale();
+  var localizedMessage = new LocalizedMessage(locale);
+  try {
+    // Confirmation before sending email
+    let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(myEmail);
+    let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
+    if (answer !== ui.Button.OK) {
+      throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
+    }
+    // Get the values of createdDraftIds, the string of draft IDs to send, stored in the document property
+    let createdDraftIds = JSON.parse(dp.getProperty('createdDraftIds'));
+    console.log(`[sendDrafts] Loaded target draft IDs: ${createdDraftIds}`); // log
+    if (!createdDraftIds || createdDraftIds.length == 0) {
+      // Throw error if no draft ID is stored.
+      throw new Error(localizedMessage.messageList.errorNoDraftToSend);
+    }
+    // Send emails
+    createdDraftIds.forEach(draftId => GmailApp.getDraft(draftId).send());
+    // Empty createdDraftIds
+    createdDraftIds = [];
+    dp.setProperty('createdDraftIds', JSON.stringify(createdDraftIds));
+    console.log('[sendDrafts] Completed: Sent emails created by createDraftEmails()'); // log
+    let completeMessage = `${localizedMessage.messageList.alertCompleteAllMailsSent} (sendDrafts)`;
+    ui.alert(completeMessage);
+  } catch (e) {
+    console.log(`[sendDrafts] Alert message: ${e.stack}`); // log
+    ui.alert(e.stack);
+  }
 }
 
 /**
  * Send personalized email(s)
  */
 function sendEmails() {
-  console.log('Initiating Mail Merge for Gmail on Send Mode...'); // log
+  console.log('[sendEmails] Initiating: Mail Merge for Gmail on Send Mode...'); // log
   var draftMode = false;
   var config = getConfig_('Config');
-  console.log(`config: ${JSON.stringify(config)}`); // log
-  sendPersonalizedEmails_(draftMode, config);
+  console.log(`[sendEmails] config: ${JSON.stringify(config)}`); // log
+  mailMerge(draftMode, config);
+  console.log('[sendEmails] Completed: Mail Merge for Gmail on Send Mode.'); // log
 }
 
 /**
@@ -68,7 +111,7 @@ function sendEmails() {
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by getConfig_()
  */
-function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
+function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
   var myEmail = Session.getActiveUser().getEmail();
@@ -76,8 +119,10 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
   var localizedMessage = new LocalizedMessage(locale);
   var skipLabelingCount = 0;
   var scriptId = ScriptApp.getScriptId();
+  var createdDraftIds = [];
+  var dp = PropertiesService.getDocumentProperties().setProperty('createdDraftIds', JSON.stringify(createdDraftIds)); // Reset property value
   var noPlaceholder = ['ccTo', 'bccTo', 'from', 'attachments', 'inLineImages', 'labels'];
-  console.log(`Loaded spreadsheet. Language set to default of ${myEmail}: ${locale}`); // log
+  console.log(`[mailMerge] Loaded spreadsheet. Language set to default of ${myEmail}: ${locale}`); // log
   try {
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
@@ -89,18 +134,18 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
     let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
     let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
     if (answer !== ui.Button.OK) {
-      throw new Error(localizedMessage.messageList.errorCanceled);
+      throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
     }
     // Get template from Gmail draft
     let promptMessage = localizedMessage.messageList.promptEnterSubjectOfTemplateDraft;
     let promptResult = ui.prompt(promptMessage, ui.ButtonSet.OK_CANCEL);
     let [selectedButton, subjectText] = [promptResult.getSelectedButton(), promptResult.getResponseText()];
     if (selectedButton !== ui.Button.OK) {
-      throw new Error(localizedMessage.messageList.errorCanceled);
+      throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
     } else if (subjectText == null) {
       throw new Error(localizedMessage.message.errorNoTextEntered);
     }
-    console.log(`Entered subject of draft template, loading template "${subjectText}"...`); // log
+    console.log(`[mailMerge] Entered subject of draft template, loading template "${subjectText}"...`); // log
     // Get an array of GmailMessage class objects whose subject matches subjectText.
     // See https://developers.google.com/apps-script/reference/gmail/gmail-message
     let draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == subjectText);
@@ -120,14 +165,15 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       'from': draftMessages[0].getFrom(),
       'ccTo': draftMessages[0].getCc(),
       'bccTo': draftMessages[0].getBcc(),
-      'attachments': draftMessages[0].getAttachments({'includeInlineImages': false, 'includeAttachments': true}),
-      'inLineImages': draftMessages[0].getAttachments({'includeInlineImages': true, 'includeAttachments': false}),
-      'labels': draftMessages[0].getThread().getLabels()
+      'attachments': draftMessages[0].getAttachments({ 'includeInlineImages': false, 'includeAttachments': true }),
+      'inLineImages': draftMessages[0].getAttachments({ 'includeInlineImages': true, 'includeAttachments': false }),
+      'labels': draftMessages[0].getThread().getLabels(),
+      'replyTo': (config.ENABLE_REPLY_TO ? config.REPLY_TO : '')
     };
-    console.log(`Loaded template: ${JSON.stringify(template)}`); // log
+    console.log(`[mailMerge] Loaded template: ${JSON.stringify(template)}`); // log
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
-    console.log(`Template is composed in ${(isPlainText ? 'plain text' : 'rich (HTML) text')}.`); // log
+    console.log(`[mailMerge] Template is composed in ${(isPlainText ? 'plain text' : 'rich (HTML) text')}.`); // log
     let inLineImageBlobs = {};
     if (!isPlainText) {
       // If the template is composed in HTML, check for in-line images
@@ -141,8 +187,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         return obj;
       }, {});
     }
-    // Check for consistency between config.ENABLE_GROUP_MERGE and template
-    console.log(`config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
+    // Check for inconsistencies between config.ENABLE_GROUP_MERGE and template
+    console.log(`[mailMerge] config.ENABLE_GROUP_MERGE is set to "${config.ENABLE_GROUP_MERGE}".`); // log
     if (!config.ENABLE_GROUP_MERGE) {
       // Check if values in object 'template' comprise group merge markers
       let groupMergeFieldCounter = 0;
@@ -160,7 +206,7 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
         let confirmNM = localizedMessage.messageList.alertGroupMergeFieldMarkerDetected;
         let result = (ui.alert(localizedMessage.messageList.alertTitleConfirmation, confirmNM, ui.ButtonSet.YES_NO) === ui.Button.YES);
         config.ENABLE_GROUP_MERGE = result;
-        console.log(`config.ENABLE_GROUP_MERGE is ${(result ? 'switched to' : 'left at')} "${config.ENABLE_GROUP_MERGE}".`); // log
+        console.log(`[mailMerge] config.ENABLE_GROUP_MERGE is ${(result ? 'switched to' : 'left at')} "${config.ENABLE_GROUP_MERGE}".`); // log
       }
     }
     // Create draft or send email based on the template.
@@ -191,20 +237,22 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
+          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         if (draftMode) {
           let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
+          createdDraftIds.push(draft.getId());
           let draftThread = draft.getMessage().getThread();
           messageData.labels.forEach(label => draftThread.addLabel(label));
-          console.log(`Draft created for ${k} with group merge enabled.`); // log
+          console.log(`[mailMerge] Draft created for ${k} with group merge enabled.`); // log
         } else {
           GmailApp.sendEmail(k, messageData.subject, messageData.plainBody, options);
-          console.log(`Mail sent to ${k} with group merge enabled.`); // log
+          console.log(`[mailMerge] Mail sent to ${k} with group merge enabled.`); // log
           let threadJustSent = GmailApp.search('in:sent', 0, 1)[0];
           if (threadJustSent.getFirstMessageSubject() !== messageData.subject) {
             skipLabelingCount += 1;
-            console.log(`Labeling skipped for mail to ${k}.`); //log
+            console.log(`[mailMerge] Labeling skipped for mail to ${k}.`); //log
           } else {
             messageData.labels.forEach(label => threadJustSent.addLabel(label));
           }
@@ -230,20 +278,22 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
           'cc': messageData.ccTo,
           'bcc': messageData.bccTo,
           'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs)
+          'inlineImages': (isPlainText ? null : inLineImageBlobs),
+          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         if (draftMode) {
           let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+          createdDraftIds.push(draft.getId());
           let draftThread = draft.getMessage().getThread();
           messageData.labels.forEach(label => draftThread.addLabel(label));
-          console.log(`Draft created for ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
+          console.log(`[mailMerge] Draft created for ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
         } else {
           GmailApp.sendEmail(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-          console.log(`Mail sent to ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
+          console.log(`[mailMerge] Mail sent to ${obj[config.RECIPIENT_COL_NAME]} with group merge disabled.`); // log
           let threadJustSent = GmailApp.search('in:sent', 0, 1)[0];
           if (threadJustSent.getFirstMessageSubject() !== messageData.subject) {
             skipLabelingCount += 1;
-            console.log(`Labeling skipped for mail to ${obj[config.RECIPIENT_COL_NAME]}.`); //log
+            console.log(`[mailMerge] Labeling skipped for mail to ${obj[config.RECIPIENT_COL_NAME]}.`); //log
           } else {
             messageData.labels.forEach(label => threadJustSent.addLabel(label));
           }
@@ -251,17 +301,18 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
       });
     }
     // Notification
-    console.log(`Processed all mails.`); // log
+    console.log(`[mailMerge] Processed all mails.`); // log
     let completeMessage = (draftMode ? localizedMessage.messageList.alertCompleteAllDraftsCreated : localizedMessage.messageList.alertCompleteAllMailsSent);
     if (skipLabelingCount > 0) {
       completeMessage += localizedMessage.replaceAlertSkippedLabeling(skipLabelingCount, scriptId);
     }
     ui.alert(completeMessage);
   } catch (e) {
-    console.log(`Alert message: ${e.stack}`); // log
+    console.log(`[mailMerge] Alert message: ${e.stack}`); // log
     ui.alert(e.stack);
   } finally {
-    console.log('...Closing Mail Merge.'); // log
+    dp.setProperty('createdDraftIds', JSON.stringify(createdDraftIds));
+    console.log('[mailMerge] ...Closing Mail Merge.'); // log
   }
 }
 
@@ -277,6 +328,8 @@ function sendPersonalizedEmails_(draftMode = true, config = DEFAULT_CONFIG) {
  * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
  * @property {string} GROUP_FIELD_MARKER Text to be processed in RegExp() constructor to define group merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
  * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a group merge.
+ * @property {string} ENABLE_REPLY_TO String boolean. Enable setting of reply-to in the merged mails when true.
+ * @property {string} REPLY_TO [Required if ENABLE_REPLY_TO is true] The email address to set as reply-to. Placeholders can be used to set the value depending on the individual data.
  */
 function getConfig_(configSheetName = 'Config') {
   // Get values from spreadsheet
@@ -291,6 +344,7 @@ function getConfig_(configSheetName = 'Config') {
   configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
   configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
   configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
+  configObj.ENABLE_REPLY_TO = (configObj.ENABLE_REPLY_TO.toLowerCase() === 'true'); // string -> boolean
   return configObj;
 }
 

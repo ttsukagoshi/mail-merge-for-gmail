@@ -19,11 +19,15 @@
 const MESSAGES = {
   'en_US': {
     'menuName': 'Mail Merge',
-    'menuCreateDraft': 'Create Draft',
+    'menuCreateDrafts': 'Create Drafts',
+    'menuSendDrafts': 'Send the Created Drafts',
     'menuSendEmails': 'Send Emails',
+    'alertConfirmSendingOfDraft': 'Are you sure you want to send the draft email(s) as {{myEmail}}?\nOnly the drafts created by "Create Drafts" will be sent.',
+    'errorSendDraftsCanceled': 'Sending drafts is canceled.',
+    'errorNoDraftToSend': 'No draft found.',
     'alertConfirmAccountCreateDraft': 'Are you sure you want to create draft email(s) as {{myEmail}}?',
     'alertConfirmAccountSendEmail': 'Are you sure you want to send email(s) as {{myEmail}}?',
-    'errorCanceled': 'Mail merge canceled.',
+    'errorMailMergeCanceled': 'Mail merge canceled.',
     'promptEnterSubjectOfTemplateDraft': 'Enter the subject of Gmail template draft.',
     'errorNoTextEntered': 'No text entered.',
     'errorTwoOrMoreDraftsWithSameSubject': 'There are 2 or more Gmail drafts with the subject you entered. Enter a unique subject text.',
@@ -37,11 +41,15 @@ const MESSAGES = {
   },
   'ja': {
     'menuName': 'Mail Merge（メール差込）',
-    'menuCreateDraft': 'テスト差込（メール下書き作成）',
+    'menuCreateDrafts': 'テスト差込（下書きメール作成）',
+    'menuSendDrafts': '作成済みの下書きメールを送信',
     'menuSendEmails': '差込み送信（メール送信）',
+    'alertConfirmSendingOfDraft': 'Are you sure you want to send the draft email(s) as {{myEmail}}?\nOnly the drafts created by "Create Drafts" will be sent.',
+    'errorSendDraftsCanceled': 'Sending drafts is canceled.',
+    'errorNoDraftToSend': '送信する下書きメールが見つかりません。',
     'alertConfirmAccountCreateDraft': '{{myEmail}}として差し込みメールを作成し、下書きとして保存します。',
     'alertConfirmAccountSendEmail': '{{myEmail}}として差し込みメールを作成し、送信します。',
-    'errorCanceled': 'メール差込が中断されました。',
+    'errorMailMergeCanceled': 'メール差込が中断されました。',
     'promptEnterSubjectOfTemplateDraft': 'テンプレートとなるGmail下書きメールの件名を入力してください。',
     'errorNoTextEntered': '件名テキストが入力されていません。',
     'errorTwoOrMoreDraftsWithSameSubject': '入力された件名を持つ下書きメールが2件以上あります。固有の件名を指定してください。',
@@ -60,9 +68,9 @@ class LocalizedMessage {
     this.DEFAULT_LOCALE = 'en_US';
     this.locale = (MESSAGES[userLocale] ? userLocale : this.DEFAULT_LOCALE);
     this.messageList = MESSAGES[this.locale];
-    Object.keys(MESSAGES.en_US).forEach(key => {
+    Object.keys(MESSAGES[this.DEFAULT_LOCALE]).forEach(key => {
       if (!this.messageList[key]) {
-        this.messageList[key] = MESSAGES.en_US[key];
+        this.messageList[key] = MESSAGES[this.DEFAULT_LOCALE][key];
       }
     });
   }
@@ -75,6 +83,22 @@ class LocalizedMessage {
   replacePlaceholders_(text, placeholderValues = []) {
     let replacedText = placeholderValues.reduce((acc, cur) => acc.replace(new RegExp(cur.regexp, 'g'), cur.value), text);
     return replacedText;
+  }
+  /**
+   * Replace placeholder string in this.messageList.alertConfirmSendingOfDraft
+   * @param {string} myEmail
+   * @returns {string} The replaced text.
+   */
+  replaceConfirmSendingOfDraft(myEmail) {
+    let text = this.messageList.alertConfirmSendingOfDraft;
+    let placeholderValues = [
+      {
+        'regexp': '\{\{myEmail\}\}',
+        'value': myEmail
+      }
+    ];
+    text = this.replacePlaceholders_(text, placeholderValues);
+    return text;
   }
   /**
    * Replace placeholder string in this.messageList.alertConfirmAccountCreateDraft or .alertConfirmAccountSendEmail
