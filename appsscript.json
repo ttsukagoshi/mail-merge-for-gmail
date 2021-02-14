@@ -11,7 +11,7 @@
   "addOns": {
     "common": {
       "name": "Mail Merge for Gmail",
-      "logoUrl": "",
+      "logoUrl": "https://ssl.gstatic.com/docs/script/images/logo/script-64.png",
       "homepageTrigger": {
         "runFunction": "onHomepage"
       }
