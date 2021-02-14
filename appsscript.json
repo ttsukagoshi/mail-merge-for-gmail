@@ -5,7 +5,22 @@
   "runtimeVersion": "V8",
   "oauthScopes": [
     "https://mail.google.com/",
-    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
     "https://www.googleapis.com/auth/userinfo.email"
-  ]
+  ],
+  "addOns": {
+    "common": {
+      "name": "Mail Merge for Gmail",
+      "logoUrl": "",
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    },
+    "gmail": {},
+    "sheets": {
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    }
+  }
 }
