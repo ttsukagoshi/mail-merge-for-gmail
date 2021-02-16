@@ -5,22 +5,29 @@
   "runtimeVersion": "V8",
   "oauthScopes": [
     "https://mail.google.com/",
+    "https://www.googleapis.com/auth/gmail.addons.execute",
     "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/userinfo.email"
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/script.locale"
   ],
   "addOns": {
     "common": {
       "name": "Mail Merge for Gmail",
       "logoUrl": "https://ssl.gstatic.com/docs/script/images/logo/script-64.png",
+      "layoutProperties": {
+        "primaryColor": "#cc2f00",
+        "secondaryColor": "#631700"
+      },
+      "openLinkUrlPrefixes": [
+        "https://ttsukagoshi.github.io/"
+      ],
+      "useLocaleFromApp": true,
       "homepageTrigger": {
-        "runFunction": "onHomepage"
+        "runFunction": "buildHomepage",
+        "enabled": true
       }
     },
     "gmail": {},
-    "sheets": {
-      "homepageTrigger": {
-        "runFunction": "onHomepage"
-      }
-    }
+    "sheets": {}
   }
 }

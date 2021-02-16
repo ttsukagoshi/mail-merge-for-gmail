@@ -15,22 +15,127 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported onOpen, createDraftEmails, sendDrafts, sendEmails */
+/* exported buildHomepage, createDraftEmails, sendDrafts, sendEmails */
 
 // Default configurations
 const DEFAULT_CONFIG = {
   DATA_SHEET_NAME: 'List',
   RECIPIENT_COL_NAME: 'Email',
   REPLACE_VALUE: 'NA',
-  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g,
-  ENABLE_GROUP_MERGE: false,
-  GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g,
+  MERGE_FIELD_MARKER_TEXT: '\\{\\{[^\\}]+\\}\\}',
+  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g, // to be deprecated
+  ENABLE_GROUP_MERGE: true,
+  GROUP_FIELD_MARKER_TEXT: '\\[\\[[^\\]]+\\]\\]',
+  GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g, // to be deprecated
   ROW_INDEX_MARKER: '{{i}}',
   ENABLE_REPLY_TO: false,
   REPLY_TO: 'replyTo@email.com'
 };
+// Key for storing and calling settings stored in user property
+const UP_KEY = 'mailMergeSettings';
+
+function buildHomepage(event) {
+  return createMailMergeCard(event.hostApp, event.userLocale);
+}
+
+function createMailMergeCard(/* hostApp, */userLocale) {
+  var userSettings = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY));
+  var createdDraftIds = (!userSettings ? null : userSettings['createdDraftIds'] || null);
+  var disableSendDrafts = (!createdDraftIds || createdDraftIds.length == 0);
+  var localizedMessage = new LocalizedMessage(userLocale);
+  var builder = CardService.newCardBuilder();
+  // Message Section
+  builder.addSection(CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph()
+      .setText(localizedMessage.messageList.cardMessage)));
+  // Recipient List Section
+  builder.addSection(CardService.newCardSection()
+    .setHeader(localizedMessage.messageList.cardRecipientListSettings)
+    .addWidget(CardService.newTextInput()
+      .setFieldName('spreadsheetUrl')
+      .setTitle(localizedMessage.messageList.cardEnterSpreadsheetUrl)
+      .setHint(localizedMessage.messageList.cardHintSpreadsheetUrl)
+      .setValue('https://docs.google.com/spreadsheets/d/*****/edit'))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('sheetName')
+      .setTitle(localizedMessage.messageList.cardEnterSheetName)
+      .setHint(localizedMessage.messageList.cardHintSheetName)
+      .setValue(DEFAULT_CONFIG.DATA_SHEET_NAME))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('recipientColName')
+      .setTitle(localizedMessage.messageList.cardEnterRecipientColName)
+      .setHint(localizedMessage.messageList.cardHintRecipientColName)
+      .setValue(DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
+  // Template Draft Section
+  builder.addSection(CardService.newCardSection()
+    .setHeader(localizedMessage.messageList.cardTemplateDraftSettings)
+    .addWidget(CardService.newTextInput()
+      .setFieldName('templateSubject')
+      .setTitle(localizedMessage.messageList.cardEnterTemplateSubject)
+      .setHint(localizedMessage.messageList.cardHintTemplateSubject))
+    .addWidget(CardService.newDecoratedText()
+      .setText(localizedMessage.messageList.cardSwitchEnableGroupMerge)
+      .setSwitchControl(CardService.newSwitch()
+        .setSelected(DEFAULT_CONFIG.ENABLE_GROUP_MERGE)
+        .setFieldName('enableGroupMerge')
+        .setValue('enabled'))));
+  // Advanced Settings Section
+  builder.addSection(CardService.newCardSection()
+    .setHeader(localizedMessage.messageList.cardAdvancedSettings)
+    .setCollapsible(true)
+    .addWidget(CardService.newDecoratedText()
+      .setText(localizedMessage.messageList.cardSwitchEnableReplyTo)
+      .setSwitchControl(CardService.newSwitch()
+        .setSelected(DEFAULT_CONFIG.ENABLE_REPLY_TO)
+        .setFieldName('enableReplyTo')
+        .setValue('enabled')))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('replyTo')
+      .setTitle(localizedMessage.messageList.cardEnterReplyTo)
+      .setHint(localizedMessage.messageList.cardHintReplyTo)
+      .setValue(DEFAULT_CONFIG.REPLY_TO))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('mergeFieldMarker')
+      .setTitle(localizedMessage.messageList.cardEnterMergeFieldMarker)
+      .setHint(localizedMessage.messageList.cardHintMergeFieldMarker)
+      .setValue(DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('groupFieldMarker')
+      .setTitle(localizedMessage.messageList.cardEnterGroupFieldMarker)
+      .setHint(localizedMessage.messageList.cardHintGroupFieldMarker)
+      .setValue(DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('rowIndexMarker')
+      .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
+      .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
+      .setValue(DEFAULT_CONFIG.ROW_INDEX_MARKER)));
+  // Buttons Section
+  builder.addSection(CardService.newCardSection()
+    .addWidget(CardService.newButtonSet()
+      .addButton(CardService.newTextButton()
+        .setText(localizedMessage.messageList.buttonCreateDrafts)
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setOnClickAction(CardService.newAction().setFunctionName('createDraftEmails'))
+        .setDisabled(false))
+      .addButton(CardService.newTextButton()
+        .setText(localizedMessage.messageList.buttonSendDrafts)
+        .setOnClickAction(CardService.newAction().setFunctionName('sendDrafts'))
+        .setDisabled(disableSendDrafts))
+      .addButton(CardService.newTextButton()
+        .setText(localizedMessage.messageList.buttonSendEmails)
+        .setOnClickAction(CardService.newAction().setFunctionName('sendEmails'))
+        .setDisabled(false))));
+  // Fixed Footer
+  builder.setFixedFooter(CardService.newFixedFooter()
+    .setPrimaryButton(CardService.newTextButton()
+      .setText('HELP')
+      .setOpenLink(CardService.newOpenLink()
+        .setUrl('https://ttsukagoshi.github.io/scriptable-assets/gas-solutions/mail-merge-for-gmail/'))));
+  return builder.build();
+}
 
 // Add spreadsheet menu
+/*
 function onOpen() {
   var locale = Session.getActiveUserLocale();
   var localizedMessage = new LocalizedMessage(locale);
@@ -42,6 +147,7 @@ function onOpen() {
     .addItem(localizedMessage.messageList.menuSendEmails, 'sendEmails')
     .addToUi();
 }
+*/
 
 /**
  * Create draft of personalized email(s)

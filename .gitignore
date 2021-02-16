@@ -1,5 +1,2 @@
 # clasp-related files
 .clasp.json
-
-# for testing
-src/test.js
