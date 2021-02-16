@@ -21,6 +21,7 @@ globals:
   # Atomics: readonly
   # SharedArrayBuffer: readonly
   CalendarApp: readonly
+  CardService: readonly
   DocumentApp: readonly
   DriveApp: readonly
   FormApp: readonly
