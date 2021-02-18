@@ -18,7 +18,7 @@
 
 const MESSAGES = {
   'en': {
-    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nSend personalized emails based on Gmail template to multiple recipients. Together with an optional <b>Group Merge</b> feature.\n\nEnter the following items and select <b><i>Create Drafts</i></b> or <b><i>Send Emails</i></b>. <b>All items are required fields</b> unless otherwise noted.',
+    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nOpen-sourced add-on to send personalized emails based on Gmail template to multiple recipients. The unique <b>Group Merge</b> feature allows sender to group multiple contents for the same recipient in a single email.\n\nEnter the following items and select <b><i>Create Drafts</i></b> or <b><i>Send Emails</i></b>. <b>All items are required fields</b> unless otherwise noted.',
     'cardRecipientListSettings': '1. Recipient List',
     'cardEnterSpreadsheetUrl': 'Spreadsheet URL',
     'cardHintSpreadsheetUrl': 'Enter the full URL of the Google Sheets spreadsheet used as the list of recipients.',
@@ -67,7 +67,7 @@ const MESSAGES = {
     'alertCompleteSavedUserConfig': 'Complete: Saved user settings.\n\n'
   },
   'ja': {
-    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nGmailのための差し込みメール作成。同じ宛先への複数行にわたる情報を1通のメールにまとめられる<b>まとめ差し込み（Group Merge）</b>機能付き。\n\n以下の項目を入力して「<b>テスト差込（下書きメール作成）</b>」または「<b>差込み送信（メール送信）</b>」を選択してください。\n別途説明がある項目を除けば<b>すべて必須の入力項目</b>です。',
+    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nオープンソースで利用可能なGmailのための差し込みメール作成用アドオン。同じ宛先への複数行にわたる情報を1通のメールにまとめられる<b>まとめ差し込み（Group Merge）</b>機能付き。\n\n以下の項目を入力して「<b>テスト差込（下書きメール作成）</b>」または「<b>差込み送信（メール送信）</b>」を選択してください。\n別途説明がある項目を除けば<b>すべて必須の入力項目</b>です。',
     'cardRecipientListSettings': '1. 宛先リストの設定',
     'cardEnterSpreadsheetUrl': 'スプレッドシートURL',
     'cardHintSpreadsheetUrl': '宛先リストのスプレッドシートURLを入力',
