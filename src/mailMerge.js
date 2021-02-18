@@ -15,7 +15,7 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported buildHomepage, buildHomepageRestoreUserConfig, buildHomepageRestoreDefault, createDraftEmails, sendDrafts, sendEmails */
+/* exported buildHomepage, buildHomepageRestoreUserConfig, buildHomepageRestoreDefault, saveUserConfig, createDraftEmails, sendDrafts, sendEmails */
 
 //////////////////////
 // Global Variables //
@@ -248,7 +248,7 @@ function saveUserConfig(event) {
   for (let k in config) {
     cardMessage += `<b>${k}: ${config[k]}\n`;
   }
-  return createMessageCard(cardMessage, config.userLocale)
+  return createMessageCard(cardMessage, config.userLocale);
 }
 
 /**
