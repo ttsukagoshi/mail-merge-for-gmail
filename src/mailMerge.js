@@ -15,7 +15,11 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported buildHomepage */
+/* exported buildHomepage, buildHomepageRestoreUserConfig, buildHomepageRestoreDefault, createDraftEmails, sendDrafts, sendEmails */
+
+//////////////////////
+// Global Variables //
+//////////////////////
 
 // Default configurations
 const DEFAULT_CONFIG = {
@@ -31,40 +35,65 @@ const DEFAULT_CONFIG = {
   GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g, // to be deprecated
   ROW_INDEX_MARKER: '{{i}}',
   ENABLE_REPLY_TO: false,
-  REPLY_TO: 'replyTo@email.com',
-  hostApp: '',
-  userLocale: '',
+  REPLY_TO: 'replyTo@email.com'
 };
 // Key(s) for storing and calling settings stored as user property
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
+const UP_KEY_USER_CONFIG = 'userConfig';
+
+//////////////////////////
+// Add-on Card Builders //
+//////////////////////////
 
 /**
  * Function to create the homepage card for the add-on.
  * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function buildHomepage(event) {
-  return createMailMergeCard(/*event.commonEventObject.hostApp, */event.commonEventObject.userLocale);
+  var userConfig = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)) || JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_PREV_CONFIG)) || DEFAULT_CONFIG;
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, userConfig);
 }
 
 /**
- * Function to create the homepage card for the add-on.
+ * Function to reset (re-create) the homepage card with user config values.
+ * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
+ */
+function buildHomepageRestoreUserConfig(event) {
+  var userConfig = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)) || DEFAULT_CONFIG;
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, userConfig);
+}
+
+/**
+ * Function to reset (re-create) the homepage card with default config values.
  * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function buildHomepageRestoreDefault(event) {
-  return createMailMergeCard(/*event.commonEventObject.hostApp, */event.commonEventObject.userLocale);
+  PropertiesService.getUserProperties().setProperty(UP_KEY_PREV_CONFIG, '[{}]');
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp);
 }
 
 /**
  * Homepage card builder
- * @param {string} userLocale 
+ * @param {string} userLocale User locale obtained from the add-on event object
+ * https://developers.google.com/workspace/add-ons/concepts/event-objects#common_event_object
+ * @param {string} hostApp Name of host that the add-on was call on; obtained from the add-on event object
+ * @param {Object} userConfig [Optional] A set of user-specific, pre-defined values
  */
-function createMailMergeCard(/* hostApp, */userLocale) {
+function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
+  // Load localized messages
   var localizedMessage = new LocalizedMessage(userLocale);
+  // Load user properties
   var userProperties = PropertiesService.getUserProperties();
   var createdDraftIds = JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
   var disableSendDrafts = (!createdDraftIds || createdDraftIds.length == 0);
   var prevConfig = JSON.parse(userProperties.getProperty(UP_KEY_PREV_CONFIG));
+  // Get URL of currently open spreadsheet if host is Google Sheets
+  var ssUrl = null;
+  if (hostApp == 'SHEETS') {
+    ssUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+  }
+  // Build card
   var builder = CardService.newCardBuilder();
   // Message Section
   builder.addSection(CardService.newCardSection()
@@ -83,17 +112,17 @@ function createMailMergeCard(/* hostApp, */userLocale) {
       .setFieldName('SPREADSHEET_URL')
       .setTitle(localizedMessage.messageList.cardEnterSpreadsheetUrl)
       .setHint(localizedMessage.messageList.cardHintSpreadsheetUrl)
-      .setValue(prevConfig.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL))
+      .setValue(ssUrl || userConfig.SPREADSHEET_URL || prevConfig.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL))
     .addWidget(CardService.newTextInput()
       .setFieldName('DATA_SHEET_NAME')
       .setTitle(localizedMessage.messageList.cardEnterSheetName)
       .setHint(localizedMessage.messageList.cardHintSheetName)
-      .setValue(prevConfig.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
+      .setValue(userConfig.DATA_SHEET_NAME || prevConfig.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
     .addWidget(CardService.newTextInput()
       .setFieldName('RECIPIENT_COL_NAME')
       .setTitle(localizedMessage.messageList.cardEnterRecipientColName)
       .setHint(localizedMessage.messageList.cardHintRecipientColName)
-      .setValue(prevConfig.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
+      .setValue(userConfig.RECIPIENT_COL_NAME || prevConfig.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
   // Template Draft Section
   builder.addSection(CardService.newCardSection()
     .setHeader(localizedMessage.messageList.cardTemplateDraftSettings)
@@ -101,11 +130,11 @@ function createMailMergeCard(/* hostApp, */userLocale) {
       .setFieldName('TEMPLATE_SUBJECT')
       .setTitle(localizedMessage.messageList.cardEnterTemplateSubject)
       .setHint(localizedMessage.messageList.cardHintTemplateSubject)
-      .setValue(prevConfig.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT))
+      .setValue(userConfig.TEMPLATE_SUBJECT || prevConfig.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT))
     .addWidget(CardService.newDecoratedText()
       .setText(localizedMessage.messageList.cardSwitchEnableGroupMerge)
       .setSwitchControl(CardService.newSwitch()
-        .setSelected(prevConfig.ENABLE_GROUP_MERGE || DEFAULT_CONFIG.ENABLE_GROUP_MERGE)
+        .setSelected(typeof userConfig.ENABLE_GROUP_MERGE == 'boolean' ? userConfig.ENABLE_GROUP_MERGE : (typeof prevConfig.ENABLE_GROUP_MERGE == 'boolean' ? prevConfig.ENABLE_GROUP_MERGE == 'boolean' : DEFAULT_CONFIG.ENABLE_GROUP_MERGE))
         .setFieldName('ENABLE_GROUP_MERGE')
         .setValue('enabled'))));
   // Advanced Settings Section
@@ -115,47 +144,57 @@ function createMailMergeCard(/* hostApp, */userLocale) {
     .addWidget(CardService.newDecoratedText()
       .setText(localizedMessage.messageList.cardSwitchEnableReplyTo)
       .setSwitchControl(CardService.newSwitch()
-        .setSelected(prevConfig.ENABLE_REPLY_TO || DEFAULT_CONFIG.ENABLE_REPLY_TO)
+        .setSelected(typeof userConfig.ENABLE_REPLY_TO == 'boolean' ? userConfig.ENABLE_REPLY_TO : (typeof prevConfig.ENABLE_REPLY_TO == 'boolean' ? prevConfig.ENABLE_REPLY_TO : DEFAULT_CONFIG.ENABLE_REPLY_TO))
         .setFieldName('ENABLE_REPLY_TO')
         .setValue('enabled')))
     .addWidget(CardService.newTextInput()
       .setFieldName('REPLY_TO')
       .setTitle(localizedMessage.messageList.cardEnterReplyTo)
       .setHint(localizedMessage.messageList.cardHintReplyTo)
-      .setValue(prevConfig.REPLY_TO || DEFAULT_CONFIG.REPLY_TO))
+      .setValue(userConfig.REPLY_TO || prevConfig.REPLY_TO || DEFAULT_CONFIG.REPLY_TO))
     .addWidget(CardService.newTextInput()
       .setFieldName('REPLACE_VALUE')
       .setTitle(localizedMessage.messageList.cardEnterReplaceValue)
       .setHint(localizedMessage.messageList.cardHintReplaceValue)
-      .setValue(prevConfig.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE))
+      .setValue(userConfig.REPLACE_VALUE || prevConfig.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE))
     .addWidget(CardService.newTextInput()
       .setFieldName('MERGE_FIELD_MARKER_TEXT')
       .setTitle(localizedMessage.messageList.cardEnterMergeFieldMarker)
       .setHint(localizedMessage.messageList.cardHintMergeFieldMarker)
-      .setValue(prevConfig.MERGE_FIELD_MARKER_TEXT || DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT))
+      .setValue(prevConfig.MERGE_FIELD_MARKER_TEXT || userConfig.MERGE_FIELD_MARKER_TEXT || DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT))
     .addWidget(CardService.newTextInput()
       .setFieldName('GROUP_FIELD_MARKER_TEXT')
       .setTitle(localizedMessage.messageList.cardEnterGroupFieldMarker)
       .setHint(localizedMessage.messageList.cardHintGroupFieldMarker)
-      .setValue(prevConfig.GROUP_FIELD_MARKER_TEXT || DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT))
+      .setValue(userConfig.GROUP_FIELD_MARKER_TEXT || prevConfig.GROUP_FIELD_MARKER_TEXT || DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT))
     .addWidget(CardService.newTextInput()
       .setFieldName('ROW_INDEX_MARKER')
       .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
       .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
-      .setValue(prevConfig.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
+      .setValue(userConfig.ROW_INDEX_MARKER || prevConfig.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
   // Buttons Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newButtonSet()
       .addButton(CardService.newTextButton()
+        .setText(localizedMessage.messageList.buttonRestoreUserConfig)
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setOnClickAction(CardService.newAction().setFunctionName('buildHomepageRestoreUserConfig')))
+      .addButton(CardService.newTextButton()
+        .setText(localizedMessage.messageList.buttonSaveUserConfig)
+        .setOnClickAction(CardService.newAction().setFunctionName('saveUserConfig')))
+      .addButton(CardService.newTextButton()
         .setText(localizedMessage.messageList.buttonRestoreDefault)
-        .setOnClickAction(CardService.newAction().setFunctionName('buildHomepage')))
+        .setOnClickAction(CardService.newAction().setFunctionName('buildHomepageRestoreDefault')))
+      .addButton(CardService.newTextButton()
+        .setText('READ MANUAL')
+        .setOpenLink(CardService.newOpenLink()
+          .setUrl('https://ttsukagoshi.github.io/scriptable-assets/gas-solutions/mail-merge-for-gmail/')))
+      /*
       .addButton(CardService.newTextButton()
         .setText('test')
         .setOnClickAction(CardService.newAction().setFunctionName('test')))
-      .addButton(CardService.newTextButton()
-        .setText('help')
-        .setOpenLink(CardService.newOpenLink()
-          .setUrl('https://ttsukagoshi.github.io/scriptable-assets/gas-solutions/mail-merge-for-gmail/')))));
+      */
+    ));
   // Fixed Footer
   builder.setFixedFooter(CardService.newFixedFooter()
     .setPrimaryButton(CardService.newTextButton()
@@ -170,33 +209,47 @@ function createMailMergeCard(/* hostApp, */userLocale) {
   return builder.build();
 }
 
+/*
+function test(event) {
+  console.log(JSON.stringify(event));
+}
+*/
+
 /**
  * Builder for message cards to present error and other messages to the add-on user.
  * @param {String} message Message string that can accept some basic HTML formatting described in https://developers.google.com/workspace/add-ons/concepts/widgets?hl=en#text_formatting
  */
-function createMessageCard(message) {
+function createMessageCard(message, userLocale) {
+  var localizedMessage = new LocalizedMessage(userLocale);
   var builder = CardService.newCardBuilder()
     .addSection(CardService.newCardSection()
       .addWidget(CardService.newTextParagraph()
-        .setText(message)));
+        .setText(message)))
+    .addSection(CardService.newCardSection()
+      .addWidget(CardService.newButtonSet()
+        .addButton(CardService.newTextButton()
+          .setText(localizedMessage.messageList.buttonReturnHome)
+          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+          .setOnClickAction(CardService.newAction().setFunctionName('buildHomepage')))));
   return builder.build();
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-function test(event) {
+//////////////////////////
+// Mail Merge Actions //
+//////////////////////////
+
+function saveUserConfig(event) {
   var config = parseConfig_(event);
-  var message = '';
-  try {
-    let ss = SpreadsheetApp.openByUrl(config.SPREADSHEET_URL);
-    let sheet = ss.getSheetByName(config.DATA_SHEET_NAME);
-    message = sheet.getName();
-  } catch (error) {
-    console.log(error.stack)
-    message = error.message;
+  // Save on user property
+  PropertiesService.getUserProperties().setProperty(UP_KEY_USER_CONFIG, JSON.stringify(config));
+  // Construct complete message
+  var localizedMessage = new LocalizedMessage(config.userLocale);
+  var cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
+  for (let k in config) {
+    cardMessage += `<b>${k}: ${config[k]}\n`;
   }
-  return createMessageCard(message);
+  return createMessageCard(cardMessage, config.userLocale)
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Create draft of personalized email(s)
@@ -204,45 +257,60 @@ function test(event) {
 function createDraftEmails(event) {
   const draftMode = true;
   const config = parseConfig_(event);
-  mailMerge(draftMode, config);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
 }
 
 /**
  * Send the drafts created by createDraftEmails()
  */
-function sendDrafts() {
-  console.log('[sendDrafts] Initiating: Sending the drafts created by createDraftEmails()...'); // log
+function sendDrafts(event) {
+  const config = parseConfig_(event);
+  var localizedMessage = new LocalizedMessage(config.userLocale);
   var userProperties = PropertiesService.getUserProperties();
-  var ui = SpreadsheetApp.getUi();
-  var myEmail = Session.getActiveUser().getEmail();
-  var locale = Session.getActiveUserLocale();
-  var localizedMessage = new LocalizedMessage(locale);
+  var cardMessage = '';
   try {
-    // Confirmation before sending email
-    let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(myEmail);
-    let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
-    if (answer !== ui.Button.OK) {
-      throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
+    let messageCount = 0;
+    if (config.hostApp == 'SHEETS') {
+      // Confirmation before sending email
+      var ui = SpreadsheetApp.getUi();
+      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(Session.getActiveUser().getEmail());
+      let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
+      if (answer !== ui.Button.OK) {
+        throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
+      }
     }
-    // Get the values of createdDraftIds, the string of draft IDs to send, stored in the document property
+    // Get the values of createdDraftIds, the string of draft IDs to send, stored in the user property
     let createdDraftIds = JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
-    console.log(`[sendDrafts] Loaded target draft IDs: ${createdDraftIds}`); // log
     if (!createdDraftIds || createdDraftIds.length == 0) {
       // Throw error if no draft ID is stored.
       throw new Error(localizedMessage.messageList.errorNoDraftToSend);
     }
     // Send emails
-    createdDraftIds.forEach(draftId => GmailApp.getDraft(draftId).send());
+    createdDraftIds.forEach(draftId => {
+      GmailApp.getDraft(draftId).send();
+      messageCount += 1;
+    });
     // Empty createdDraftIds
     createdDraftIds = [];
     userProperties.setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
-    console.log('[sendDrafts] Completed: Sent emails created by createDraftEmails()'); // log
-    let completeMessage = `${localizedMessage.messageList.alertCompleteAllMailsSent} (sendDrafts)`;
-    ui.alert(completeMessage);
-  } catch (e) {
-    console.log(`[sendDrafts] Alert message: ${e.stack}`); // log
-    ui.alert(e.stack);
+    cardMessage = localizedMessage.replaceCompleteMessage(false, messageCount);
+  } catch (error) {
+    let knownErrorMessages = [];
+    for (let k in localizedMessage.messageList) {
+      if (!(k.startsWith('error'))) {
+        continue;
+      }
+      knownErrorMessages.push(localizedMessage.messageList[k]);
+    }
+    if (knownErrorMessages.includes(error.message)) {
+      cardMessage = error.message;
+    } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
+      cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
+    } else {
+      cardMessage = 'Unexpected Error:\n' + error.stack;
+    }
   }
+  return createMessageCard(cardMessage, config.userLocale);
 }
 
 /**
@@ -251,17 +319,19 @@ function sendDrafts() {
 function sendEmails(event) {
   const draftMode = false;
   const config = parseConfig_(event);
-  mailMerge(draftMode, config);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
 }
 
 /**
  * Bulk send personalized emails based on a designated Gmail draft.
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by parseConfig_(eventObj)
+ * @returns {string} 
  */
 function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
-  var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
+  var cardMessage = '';
+  var messageCount = 0;
   // Reset list of created drafts
   var createdDraftIds = [];
   var userProperties = PropertiesService.getUserProperties().setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
@@ -285,7 +355,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
-      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
+      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
       let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
@@ -364,14 +434,16 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
-        // List the created draft ID
-        createdDraftIds.push(draft.getId());
         // Add the same Gmail labels as those on the template draft message.
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
         if (!draftMode) {
           draft.send();
+        } else {
+          // List the created draft ID
+          createdDraftIds.push(draft.getId());
         }
+        messageCount += 1;
       }
     } else {
       // Convert the 2d-array merge data into object
@@ -397,18 +469,19 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-        // List the created draft ID
-        createdDraftIds.push(draft.getId());
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
         if (!draftMode) {
           draft.send();
+        } else {
+          // List the created draft ID
+          createdDraftIds.push(draft.getId());
         }
+        messageCount += 1;
       });
     }
     // Notification
-    let completeMessage = (draftMode ? localizedMessage.messageList.alertCompleteAllDraftsCreated : localizedMessage.messageList.alertCompleteAllMailsSent);
-    createMessageCard(completeMessage);
+    cardMessage = localizedMessage.replaceCompleteMessage(draftMode, messageCount);
   } catch (error) {
     let knownErrorMessages = [];
     for (let k in localizedMessage.messageList) {
@@ -418,50 +491,17 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       knownErrorMessages.push(localizedMessage.messageList[k]);
     }
     if (knownErrorMessages.includes(error.message)) {
-      createMessageCard(error.message);
+      cardMessage = error.message;
     } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
-      createMessageCard(localizedMessage.messageList.errorSpreadsheetNotFound);
+      cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
-      createMessageCard('Unknown Error:\n' + error.stack);
+      cardMessage = 'Unexpected Error:\n' + error.stack;
+      console.error(cardMessage);
     }
-  } finally {
-    userProperties.setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
   }
+  userProperties.setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
+  return cardMessage;
 }
-
-/**
- * Returns an object of configurations from spreadsheet.
- * @param {string} configSheetName Name of sheet with configurations. Defaults to 'Config'.
- * @return {Object}
- * The sheet should have a first row of headers, and its first column should include the following properties:
- * @property {string} DATA_SHEET_NAME Name of sheet in which field(s) to merge in email are stored
- * @property {string} RECIPIENT_COL_NAME Name of column in sheet 'DATA_SHEET_NAME' that designates the email address of the recipient
- * @property {string} REPLACE_VALUE Text that will replace empty data of marker. 
- * @property {string} MERGE_FIELD_MARKER Text to be processed in RegExp() constructor to define merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
- * @property {string} ENABLE_GROUP_MERGE String boolean. Enable group merge when true.
- * @property {string} GROUP_FIELD_MARKER Text to be processed in RegExp() constructor to define group merge field(s). Note that the backslash itself does not need to be escaped, i.e., does not need to be repeated.
- * @property {string} ROW_INDEX_MARKER Marker for merging row index number in a group merge.
- * @property {string} ENABLE_REPLY_TO String boolean. Enable setting of reply-to in the merged mails when true.
- * @property {string} REPLY_TO [Required if ENABLE_REPLY_TO is true] The email address to set as reply-to. Placeholders can be used to set the value depending on the individual data.
- */
-/*
-function getConfig_(configSheetName = 'Config') {
-  // Get values from spreadsheet
-  var configValues = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(configSheetName).getDataRange().getValues();
-  configValues.shift();
-  // Convert the 2d array values into a Javascript object
-  var configObj = configValues.reduce((obj, element) => {
-    obj[element[0]] = element[1];
-    return obj;
-  }, {});
-  // Convert data types
-  configObj.ENABLE_GROUP_MERGE = (configObj.ENABLE_GROUP_MERGE.toLowerCase() === 'true'); // string -> boolean
-  configObj.MERGE_FIELD_MARKER = new RegExp(configObj.MERGE_FIELD_MARKER, 'g');
-  configObj.GROUP_FIELD_MARKER = new RegExp(configObj.GROUP_FIELD_MARKER, 'g');
-  configObj.ENABLE_REPLY_TO = (configObj.ENABLE_REPLY_TO.toLowerCase() === 'true'); // string -> boolean
-  return configObj;
-}
-*/
 
 /**
  * Retrieve configuration values for mail merge from the input values of the Card widget interactions.
@@ -486,7 +526,7 @@ function parseConfig_(eventObj) {
     let input = eventObj.commonEventObject.formInputs[item] || { 'stringInputs': { 'value': [''] } };
     let value = input.stringInputs.value[0];
     if (item == 'ENABLE_GROUP_MERGE' || item == 'ENABLE_REPLY_TO') {
-      value = (value == 'enabled');
+      value = (value == 'enabled' || value == 'true');
     } else if (item == 'MERGE_FIELD_MARKER_TEXT' || item == 'GROUP_FIELD_MARKER_TEXT') {
       item = item.replace('_TEXT', '');
       value = new RegExp(value, 'g');
@@ -494,6 +534,7 @@ function parseConfig_(eventObj) {
     config[item] = value;
     return config;
   }, {});
+  // Add host app and user locale info
   configObj['hostApp'] = eventObj.commonEventObject.hostApp;
   configObj['userLocale'] = eventObj.commonEventObject.userLocale;
   return configObj;
