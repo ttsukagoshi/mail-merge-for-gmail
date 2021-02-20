@@ -186,9 +186,9 @@ function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
         .setText(localizedMessage.messageList.buttonRestoreDefault)
         .setOnClickAction(CardService.newAction().setFunctionName('buildHomepageRestoreDefault')))
       .addButton(CardService.newTextButton()
-        .setText('READ MANUAL')
+        .setText(localizedMessage.messageList.buttonReadDocument)
         .setOpenLink(CardService.newOpenLink()
-          .setUrl('https://ttsukagoshi.github.io/scriptable-assets/gas-solutions/mail-merge-for-gmail/')))
+          .setUrl('https://ttsukagoshi.github.io/scriptable-assets/add-ons/group-merge/')))
       /*
       .addButton(CardService.newTextButton()
         .setText('test')
