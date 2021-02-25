@@ -1,18 +1,18 @@
-# Mail Merge for Gmail (English / [日本語](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md))
+# Group Merge: Mail Merge for Gmail (English / [日本語](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md))
 [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
-Send personalized emails based on Gmail template to multiple recipients using Google Sheets and Google Apps Script. The **Group Merge** feature, which allows the sender to group the contents of two or more rows into one row for a single recipient, is available.
+An open-sourced Google Workspace Add-on to send personalized emails based on Gmail template to multiple recipients using Google Sheets. The **Group Merge** feature allows the sender to group the contents of two or more rows into one row for a single recipient.
 
 ## Overview
-Similar to [the mail merge feature available in Microsoft Word](https://support.office.com/en-us/article/use-mail-merge-for-bulk-email-letters-labels-and-envelopes-f488ed5b-b849-4c11-9cff-932c49474705), this Mail Merge for Gmail allows Gmail/Google Workspace users to send personalized emails to the recipients listed in the spreadsheet. Some notable features are:  
-- Use Gmail drafts as template for mail merge. HTML styling and file attachments are preserved in the personalized emails.
+Similar to [the mail merge feature available in Microsoft Word](https://support.office.com/en-us/article/use-mail-merge-for-bulk-email-letters-labels-and-envelopes-f488ed5b-b849-4c11-9cff-932c49474705), **Group Merge** allows Gmail/Google Workspace users to send personalized emails to the recipients listed in the spreadsheet. Some notable features are:  
 - The **Group Merge** feature available for combining two or more entries with the same recipient.
+- Use Gmail drafts as template for mail merge. **HTML styling**, **file attachments**, **CC & BCC recipients**, and **Gmail labels** are preserved in the personalized emails.
 
 ## How to Use
-### 1. Prepare
-Copy [the sample spreadsheet](https://docs.google.com/spreadsheets/d/1pVoKzoldYOaEXhbEmpsLJAZqmkB1IDncQ6rTXlbqETY/edit?usp=sharing) to your Google Drive by `File` -> `Make a copy`
+### 1. Install the Add-on
+Install this add-on from the Google Workspace Marketplace: `https://workspace.google.com/marketplace/app/************/**************`
 
-### 2. Make your List
-Edit your spreadsheet in any way you want to. If you want to change the sheet name `List`, make sure to change the value of `DATA_SHEET_NAME` in sheet `Config`. 
+### 2. Create your List of Recipients
+If you already have a spreadsheetdon't have one already, create a Google Sheets spreadsheet for listing your recipients.
 
 <blockquote>
 <h4>Notes</h4>
@@ -135,6 +135,8 @@ We look forward to seeing you!
 ## Terms and Conditions
 You must agree to the [Terms and Conditions](https://ttsukagoshi.github.io/scriptable-assets/terms-and-conditions/) to use this solution from [the sample spreadsheet](https://docs.google.com/spreadsheets/d/1pVoKzoldYOaEXhbEmpsLJAZqmkB1IDncQ6rTXlbqETY/edit?usp=sharing).
 
+## Attributes
+The original icon of this add-on was made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/) and its colors are modified to fit the theme color of the app.
+
 ## Acknowledgements
 This work was inspired by [Tutorial: Simple Mail Merge (Google Apps Script Tutorial)](https://developers.google.com/apps-script/articles/mail_merge).
-
