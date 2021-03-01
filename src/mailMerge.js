@@ -51,8 +51,9 @@ const UP_KEY_USER_CONFIG = 'userConfig';
  * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function buildHomepage(event) {
-  var userConfig = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)) || JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_PREV_CONFIG)) || DEFAULT_CONFIG;
-  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, userConfig);
+  var up = PropertiesService.getUserProperties();
+  var config = JSON.parse(up.getProperty(UP_KEY_USER_CONFIG)) || JSON.parse(up.getProperty(UP_KEY_PREV_CONFIG)) || DEFAULT_CONFIG;
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, config);
 }
 
 /**
@@ -60,8 +61,8 @@ function buildHomepage(event) {
  * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function buildHomepageRestoreUserConfig(event) {
-  var userConfig = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)) || DEFAULT_CONFIG;
-  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, userConfig);
+  var config = JSON.parse(PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)) || DEFAULT_CONFIG;
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, config);
 }
 
 /**
@@ -69,8 +70,8 @@ function buildHomepageRestoreUserConfig(event) {
  * @param {Object} event Google Workspace Add-on Event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function buildHomepageRestoreDefault(event) {
-  PropertiesService.getUserProperties().setProperty(UP_KEY_PREV_CONFIG, '[{}]');
-  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp);
+  PropertiesService.getUserProperties().setProperty(UP_KEY_USER_CONFIG, '[{}]').setProperty(UP_KEY_PREV_CONFIG, '[{}]');
+  return createMailMergeCard(event.commonEventObject.userLocale, event.commonEventObject.hostApp, DEFAULT_CONFIG);
 }
 
 /**
@@ -78,16 +79,15 @@ function buildHomepageRestoreDefault(event) {
  * @param {string} userLocale User locale obtained from the add-on event object
  * https://developers.google.com/workspace/add-ons/concepts/event-objects#common_event_object
  * @param {string} hostApp Name of host that the add-on was call on; obtained from the add-on event object
- * @param {Object} userConfig [Optional] A set of user-specific, pre-defined values
+ * @param {Object} config A set of pre-defined configurations
  */
-function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
+function createMailMergeCard(userLocale, hostApp, config) {
   // Load localized messages
   var localizedMessage = new LocalizedMessage(userLocale);
   // Load user properties
   var userProperties = PropertiesService.getUserProperties();
   var createdDraftIds = JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
   var disableSendDrafts = (!createdDraftIds || createdDraftIds.length == 0);
-  var prevConfig = JSON.parse(userProperties.getProperty(UP_KEY_PREV_CONFIG));
   // Get URL of currently open spreadsheet if host is Google Sheets
   var ssUrl = null;
   if (hostApp == 'SHEETS') {
@@ -112,17 +112,17 @@ function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
       .setFieldName('SPREADSHEET_URL')
       .setTitle(localizedMessage.messageList.cardEnterSpreadsheetUrl)
       .setHint(localizedMessage.messageList.cardHintSpreadsheetUrl)
-      .setValue(ssUrl || userConfig.SPREADSHEET_URL || prevConfig.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL))
+      .setValue(ssUrl || config.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL))
     .addWidget(CardService.newTextInput()
       .setFieldName('DATA_SHEET_NAME')
       .setTitle(localizedMessage.messageList.cardEnterSheetName)
       .setHint(localizedMessage.messageList.cardHintSheetName)
-      .setValue(userConfig.DATA_SHEET_NAME || prevConfig.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
+      .setValue(config.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
     .addWidget(CardService.newTextInput()
       .setFieldName('RECIPIENT_COL_NAME')
       .setTitle(localizedMessage.messageList.cardEnterRecipientColName)
       .setHint(localizedMessage.messageList.cardHintRecipientColName)
-      .setValue(userConfig.RECIPIENT_COL_NAME || prevConfig.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
+      .setValue(config.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
   // Template Draft Section
   builder.addSection(CardService.newCardSection()
     .setHeader(localizedMessage.messageList.cardTemplateDraftSettings)
@@ -130,11 +130,11 @@ function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
       .setFieldName('TEMPLATE_SUBJECT')
       .setTitle(localizedMessage.messageList.cardEnterTemplateSubject)
       .setHint(localizedMessage.messageList.cardHintTemplateSubject)
-      .setValue(userConfig.TEMPLATE_SUBJECT || prevConfig.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT))
+      .setValue(config.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT))
     .addWidget(CardService.newDecoratedText()
       .setText(localizedMessage.messageList.cardSwitchEnableGroupMerge)
       .setSwitchControl(CardService.newSwitch()
-        .setSelected(typeof userConfig.ENABLE_GROUP_MERGE == 'boolean' ? userConfig.ENABLE_GROUP_MERGE : (typeof prevConfig.ENABLE_GROUP_MERGE == 'boolean' ? prevConfig.ENABLE_GROUP_MERGE == 'boolean' : DEFAULT_CONFIG.ENABLE_GROUP_MERGE))
+        .setSelected(typeof config.ENABLE_GROUP_MERGE == 'boolean' ? config.ENABLE_GROUP_MERGE : DEFAULT_CONFIG.ENABLE_GROUP_MERGE)
         .setFieldName('ENABLE_GROUP_MERGE')
         .setValue('enabled'))));
   // Advanced Settings Section
@@ -144,34 +144,34 @@ function createMailMergeCard(userLocale, hostApp, userConfig = {}) {
     .addWidget(CardService.newDecoratedText()
       .setText(localizedMessage.messageList.cardSwitchEnableReplyTo)
       .setSwitchControl(CardService.newSwitch()
-        .setSelected(typeof userConfig.ENABLE_REPLY_TO == 'boolean' ? userConfig.ENABLE_REPLY_TO : (typeof prevConfig.ENABLE_REPLY_TO == 'boolean' ? prevConfig.ENABLE_REPLY_TO : DEFAULT_CONFIG.ENABLE_REPLY_TO))
+        .setSelected(typeof config.ENABLE_REPLY_TO == 'boolean' ? config.ENABLE_REPLY_TO : DEFAULT_CONFIG.ENABLE_REPLY_TO)
         .setFieldName('ENABLE_REPLY_TO')
         .setValue('enabled')))
     .addWidget(CardService.newTextInput()
       .setFieldName('REPLY_TO')
       .setTitle(localizedMessage.messageList.cardEnterReplyTo)
       .setHint(localizedMessage.messageList.cardHintReplyTo)
-      .setValue(userConfig.REPLY_TO || prevConfig.REPLY_TO || DEFAULT_CONFIG.REPLY_TO))
+      .setValue(config.REPLY_TO || DEFAULT_CONFIG.REPLY_TO))
     .addWidget(CardService.newTextInput()
       .setFieldName('REPLACE_VALUE')
       .setTitle(localizedMessage.messageList.cardEnterReplaceValue)
       .setHint(localizedMessage.messageList.cardHintReplaceValue)
-      .setValue(userConfig.REPLACE_VALUE || prevConfig.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE))
+      .setValue(config.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE))
     .addWidget(CardService.newTextInput()
       .setFieldName('MERGE_FIELD_MARKER_TEXT')
       .setTitle(localizedMessage.messageList.cardEnterMergeFieldMarker)
       .setHint(localizedMessage.messageList.cardHintMergeFieldMarker)
-      .setValue(prevConfig.MERGE_FIELD_MARKER_TEXT || userConfig.MERGE_FIELD_MARKER_TEXT || DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT))
+      .setValue(config.MERGE_FIELD_MARKER_TEXT || DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT))
     .addWidget(CardService.newTextInput()
       .setFieldName('GROUP_FIELD_MARKER_TEXT')
       .setTitle(localizedMessage.messageList.cardEnterGroupFieldMarker)
       .setHint(localizedMessage.messageList.cardHintGroupFieldMarker)
-      .setValue(userConfig.GROUP_FIELD_MARKER_TEXT || prevConfig.GROUP_FIELD_MARKER_TEXT || DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT))
+      .setValue(config.GROUP_FIELD_MARKER_TEXT || DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT))
     .addWidget(CardService.newTextInput()
       .setFieldName('ROW_INDEX_MARKER')
       .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
       .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
-      .setValue(userConfig.ROW_INDEX_MARKER || prevConfig.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
+      .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
   // Buttons Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newButtonSet()
@@ -602,13 +602,13 @@ function fillInTemplate_(template, data, options) {
     options['replaceValue'] = DEFAULT_CONFIG.REPLACE_VALUE;
   }
   if (!('mergeFieldMarker' in options)) {
-    options['mergeFieldMarker'] = DEFAULT_CONFIG.MERGE_FIELD_MARKER;
+    options['mergeFieldMarker'] = new RegExp(DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT, 'g');
   }
   if (!('enableGroupMerge' in options)) {
     options['enableGroupMerge'] = DEFAULT_CONFIG.ENABLE_GROUP_MERGE;
   }
   if (!('groupFieldMarker' in options)) {
-    options['groupFieldMarker'] = DEFAULT_CONFIG.GROUP_FIELD_MARKER;
+    options['groupFieldMarker'] = new RegExp(DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT, 'g');
   }
   if (!('rowIndexMarker' in options)) {
     options['rowIndexMarker'] = DEFAULT_CONFIG.ROW_INDEX_MARKER;
