@@ -26,7 +26,7 @@ const DEFAULT_CONFIG = {
   SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/*****/edit',
   DATA_SHEET_NAME: 'List',
   RECIPIENT_COL_NAME: 'Email',
-  TEMPLATE_SUBJECT: '',
+  TEMPLATE_SUBJECT: 'Enter subject here...',
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER_TEXT: '\\{\\{[^\\}]+\\}\\}',
   MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g, // to be deprecated
