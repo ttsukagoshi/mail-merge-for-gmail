@@ -6,7 +6,8 @@ An open-sourced Google Workspace Add-on to send personalized emails based on Gma
 > The version 1 series, a legacy version preceding the current Google Workspace Add-on versions, is no longer maintained. It is available as [a GitHub branch](https://github.com/ttsukagoshi/mail-merge-for-gmail/tree/legacy-v1.8.0-spreadsheet) together with the sample spreadsheet.
 
 ## Overview
-![Group Merge icon](https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no){: .align-left} Send personalized emails based on Gmail template to multiple recipients using Gmail and Google Sheets. The namesake **Group Merge** feature allows the sender to group the contents of two or more rows into one email for a single recipient.
+![Group Merge icon](https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no)  
+Send personalized emails based on Gmail template to multiple recipients using Gmail and Google Sheets. The namesake **Group Merge** feature allows the sender to group the contents of two or more rows into one email for a single recipient.
 
 ## How to Use
 Details of the add-on is described in the [app's web page](https://www.scriptable-assets.page/add-ons/group-merge/).
