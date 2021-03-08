@@ -1,145 +1,20 @@
-# Gmailのための差し込みメール作成（Mail Merge for Gmail） ([English](https://github.com/ttsukagoshi/mail-merge-for-gmail) / 日本語)
-[![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
+# Group Merge: Gmailのための差し込みメール作成 ([English](https://github.com/ttsukagoshi/mail-merge-for-gmail) / 日本語)
+![Get this add-on from Google Workspace Marketplace](https://img.shields.io/badge/Google%20Workspace%20Add--on-Preparing-lightgrey) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 GmailとGoogleスプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を1通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
 ## 概要
-[Microsoft Wordで使える差し込み印刷](https://support.microsoft.com/ja-jp/office/%e3%83%a1%e3%83%bc%e3%83%ab%e3%80%81%e6%89%8b%e7%b4%99%e3%80%81%e3%83%a9%e3%83%99%e3%83%ab%e3%80%81%e5%b0%81%e7%ad%92%e3%82%92%e4%b8%80%e6%8b%ac%e3%81%ab%e3%81%97%e3%81%a6%e5%b7%ae%e3%81%97%e8%be%bc%e3%81%bf%e5%8d%b0%e5%88%b7%e3%82%92%e4%bd%bf%e7%94%a8%e3%81%99%e3%82%8b-f488ed5b-b849-4c11-9cff-932c49474705?ui=ja-jp&rs=ja-jp&ad=jp)がExcelの宛先リストを使って個別の宛名ラベルや文書を作成できるのと同じような使い勝手で、この「Gmailのための差し込みメール作成（Mail Merge for Gmail）」はGmailとGoogleスプレッドシートを組み合わせることで、受信者宛に個別化されたメールを送信できるようにします。
-- Gmailの下書きメールをテンプレートとして利用します。書式設定（文字の色など）や添付ファイルは、差し込み後のメールにも引き継がれます。
-- 宛先リスト内に同じメールアドレスの宛先が2つ以上ある場合、内容を1通のメールにまとめられる「**まとめ差し込み（Group Merge）**」機能つき。
+![Group Mergeのアイコン](https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no){: .align-left} GmailとGoogleスプレッドシートを使って、宛名や会議の日時などの情報を宛先ごとに個別化したメールを作成して送信するための、オープンソースのGoogle Workspaceアドオン。
+- 宛先リスト内に同じメールアドレスの宛先が2つ以上ある場合に、内容を1通のメールにまとめられる「**まとめ差し込み（Group Merge）**」機能つき。
+- Gmailの下書きをテンプレートとして利用。**書式設定**（文字の色など）や**添付ファイル**、**CC**及び**BCC**、そして**Gmailラベル**が差し込み後のメールにも引き継がれる。
 
 ## 使い方
-### 1. 準備
-[サンプルのスプレッドシート](https://docs.google.com/spreadsheets/d/1pVoKzoldYOaEXhbEmpsLJAZqmkB1IDncQ6rTXlbqETY/edit?usp=sharing)をコピーして自分のファイルとして保存してください（`ファイル` -> `コピーを作成`）。
-
-### 2. 宛先リストを作る
-1.で作ったリストを、宛先リストとしてお好きなように整えます。シート名「`List`」を変える場合は、シート「`Config`」内の`DATA_SHEET_NAME`の値を、併せて変更しておいてください。 
-
-<blockquote>
-    <h4>注意！</h4>
-    <ul>
-        <li>スプレッドシートの1行目は、サンプルシートにあるようにヘッダ行（フィールド名を指定する行）としておいてください。集計値など、他のデータは入力しないでください。</li>
-        <li>初期設定では、宛先メールアドレスを指定するためのフィールド名（列名）は<code>Email</code>となっています。これを変える場合はシート「<code>Config</code>」内の<code>RECIPIENT_COL_NAME</code>を変更してください。</li>
-        <li>設定を記載しているシート「<code>Config</code>」のシート名を変えることは推奨されません。変更にはGoogle Apps Scriptの当該箇所を変更する必要があります。</li>
-        <li>半角・小文字の<code>i</code>は、後述のように「まとめ差し込み」機能のために使用されます。フィールド名（列名）としては使用できませんので、ご注意ください。</li>
-        <li>宛先リストのセル内改行は差し込み後のメールにも反映されますが、改行以外の、文字色・サイズ・ボールド体といった書式は反映されません。</li>
-    </ul>
-</blockquote>
-
-### 3. Gmailでテンプレートとなる下書きメールを作成する。
-メールを送信するGmail/G Suiteアカウントにて、テンプレートとなる下書きメールを作成してください。初期設定では、`{{このように二重の中かっこ（半角）で括られた文字列}}`が差し込みフィールドとして認識されます。  
-例）「`{{会社名}}` `{{氏名}}`様〜〜〜」  
-フィールド名は、2.で作成した宛名リストのフィールド名と一致している必要があります。全角・半角や大文字・小文字も区別されるので、ご注意ください。下書きにファイルを添付した場合、差し込み後のメールにも同じファイルが添付されます。もしリッチテキスト（HTMLメール）で下書きを作成したのであれば、書式設定等も引き継がれます。  
-テンプレートにてCCやBCCとして指定した宛先は、差し込み後のメールにも反映されます。
-
-#### 差し込み後にも反映される、テンプレート（下書き）の設定
-テンプレートとして入力した下書きメールに設定した以下の項目については、差し込み後のメールにも反映されます：  
-- CC/BCC宛先
-- 添付ファイル
-- 文中の挿入画像（リッチテキストの場合）
-- 下書きメールに設定したGmailラベル
-
-#### まとめ差し込み（Group Merge）
-同じ宛先が、宛先リスト内で複数回入力されているような場合では、1通ずつ（複数回）メールするのではなく、それぞれの内容を1通のメールにまとめて送信したいこともあるかと思います。そんな時にはこの「まとめ差し込み（Group Merge）」を使って、まとめたいフィールドと個別に列挙したいフィールドをそれぞれ指定して、メールを作成できます。詳細は[まとめ差し込み（Group Merge）使用例](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md#%E3%81%BE%E3%81%A8%E3%82%81%E5%B7%AE%E3%81%97%E8%BE%BC%E3%81%BFgroup-merge%E4%BD%BF%E7%94%A8%E4%BE%8B)をご覧ください。
-
-初期設定では`[[このように二重の大かっこ（半角）で括られた文字列内の{{フィールド}}]]`が、まとめ差し込み（Group Merge）を行う時に個別に列挙したいフィールドとして認識されます。特別なフィールド`{{i}}`は、インデックス番号を挿入したい時に使用します。  
-
-まとめ差し込みを使用したい場合は、シート「`Config`」内の`ENABLE_GROUP_MERGE`を`true`に変更してください。
-
-<blockquote>
-    <h4>補足</h4>
-    <ul>
-        <li>テンプレートとなる下書きメールの件名は固有のものでなければなりません。指定した件名を持つ下書きが２通以上ある場合はエラーが返されます。</li>
-        <li>メール件名にも、差し込みフィールドやまとめ差し込みを挿入できます。</li>
-        <li>宛先リストに存在しないフィールドがテンプレートで指定された場合、その部分は「<code>NA</code>」という文字列で置換されて送信されます。この<code>NA</code>は、シート「<code>Config</code>」内の<code>REPLACE_VALUE</code>を変えるすることで任意の文字列に変更できます。</li>
-    </ul>
-</blockquote>
-
-### 4. 差し込み実行：下書き（テスト）作成、または直接送信
-2.で作成した宛先リストのスプレッドシートメニュー`Mail Merge（メール差込）`から、`テスト差込（メール下書き作成）`または`差込み送信（メール送信）`を選べます。前者は差込のテスト用に、差し込みしたメールを下書きとして保存しておく機能で、後者はメールを直接送信するものです。両者は **連動していません** ので、`テスト差込（メール下書き作成）`で作成した下書きを送信したい場合は, `作成済みの下書きメールを送信`を実行してください。  
-いずれの場合も、テンプレートとなる下書きメールの件名を入力するよう、促されます。
-
-<blockquote>
-    <h4>補足</h4>
-    <ul>
-        <li>テンプレートとなる下書きメールに添付された全てのファイルは、本文内に埋め込まれた画像も含めて、差し込み後のメールにも反映され、個別の宛先に送付されます。</li>
-        <li><code>作成済みの下書きメールを送信</code>は、直近の<code>テスト差込（メール下書き作成）</code>で生成された下書きメールのみを送信するものです。それより前に実行された<code>テスト差込（メール下書き作成）</code>での下書きメールや、その他の下書きにあるメールは送信されません。</li>
-    </ul>
-</blockquote>
-
-## まとめ差し込み（Group Merge）使用例
-次のような宛先リスト
-|Email|名前|ミーティングID|日付|開始時刻|終了時刻|
-| --- | --- | --- | --- | --- | --- |
-|`tanaka@example.com`|田中|00001|2020年5月7日|13:00|14:00|
-|`suzuki@sample.com`|鈴木|00002|2020年5月7日|14:30|15:30|
-|`tanaka@example.com`|田中|00003|2020年5月8日|9:00|10:00|
-
-と以下のようなGmailの下書きテンプレートがある時、
-```
-{{名前}} 様,
-
-この度はお申し込みいただき、誠にありがとうございます。
-ウェブ会議システムのミーティングIDは次のとおりです：
-
-[[
-ミーティング{{i}}
-日づけ: {{日付}}
-時間: {{開始時刻}} – {{終了時刻}}
-ミーティングID: {{ミーティングID}}
-
-]]
-当日お会いできるのを楽しみにしております。
-```
-
-まとめ差し込み機能を使った差し込み後のメールは、以下のようなものとなる：  
-**田中さんへのメール**
-```
-田中 様,
-
-この度はお申し込みいただき、誠にありがとうございます。
-ウェブ会議システムのミーティングIDは次のとおりです：
-
-ミーティング1
-日づけ: 2020年5月7日
-時間: 13:00 – 14:00
-ミーティングID: 00001
-
-ミーティング2
-日づけ: 2020年5月8日
-時間: 9:00 - 10:00
-ミーティングID: 00003
-
-当日お会いできるのを楽しみにしております。
-```
-
-**鈴木さんへのメール**
-```
-鈴木 様,
-
-この度はお申し込みいただき、誠にありがとうございます。
-ウェブ会議システムのミーティングIDは次のとおりです：
-
-ミーティング1
-日づけ: 2020年5月7日
-時間: 14:30 – 15:30
-ミーティングID: 00002
-
-当日お会いできるのを楽しみにしております。
-```
-
-## 高度な設定
-### 差し込みフィールドのマーカー
-- 差し込みフィールド及びまとめ差し込みのマーカーは、シート「`Config`」内の`MERGE_FIELD_MARKER`及び`GROUP_FIELD_MARKER`を変えることで変更できます。これらの値は[JavaScriptの正規表現](https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide/Regular_Expressions)で書く必要があります。
-- まとめ差し込みで使うインデックス番号`{{i}}`も、同じくシート「`Config`」内で設定変更できます。
-- HTMLメールを送ろうと思っている人がマーカーを変更するのであれば、変更後のマーカーがHTML形式のメールで使われるHTMLタグ等と競合しないことを十分に確認の上、変更してください。
-
-### Reply-To設定
-- 差し込み後の各メールについてReply-To設定を有効にしたい場合は、シート「`Config`」内の`ENABLE_REPLY_TO`を`true`（初期設定では`false`）とした上で、Reply-Toとするメールアドレスを`REPLY_TO`値として指定してください。
-- `REPLY_TO`値は固定の値（例：`contact@example.com`）とすることもできますし、差し込みフィールドを使って`{{replyTo}}@example.com`のようにすることもできます。後者の場合は、宛先リストにある`replyTo`列の値が差し込まれ、個別にReply-Toが設定されたメールが生成されます。
-- **重要！** Reply-To設定を有効にしつつ`テスト差込（下書きメール作成）`を実行する場合、生成された差し込み済みの下書きメールを[Gmailウェブサイトから直接送信するとReply-To設定が無効化される](https://stackoverflow.com/questions/65878696/how-can-i-keep-the-reply-to-setting-in-gmail-drafts-created-by-gmailapp-createdr)ことにご注意ください。差し込み済みの下書きメールを送信する場合は、スプレッドシートのメニューから`作成済みの下書きメールを送信`を実行してください。
+本アドオンの詳細は、[ウェブサイト](https://www.scriptable-assets.page/ja/add-ons/group-merge/)をご覧ください。
 
 ## 利用規約
-[サンプルシート](https://docs.google.com/spreadsheets/d/1pVoKzoldYOaEXhbEmpsLJAZqmkB1IDncQ6rTXlbqETY/edit?usp=sharing)に基づく利用は[利用規約](https://ttsukagoshi.github.io/scriptable-assets/terms-and-conditions/)への同意が必要となります。
+本アドオンの使用には、[利用規約（英）](https://www.scriptable-assets.page/ja/add-ons/group-merge/#%E5%88%A9%E7%94%A8%E8%A6%8F%E7%B4%84)への同意が必要です。
+
+## アイコンの出典
+The original icon of this add-on was made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/) and its colors are modified to fit the theme color of the app.
 
 ## 謝辞
 This work was inspired by [Tutorial: Simple Mail Merge (Google Apps Script Tutorial)](https://developers.google.com/apps-script/articles/mail_merge).
