@@ -9,6 +9,10 @@ An open-sourced Google Workspace Add-on to send personalized emails based on Gma
 ![Group Merge icon](https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no)  
 Send personalized emails based on Gmail template to multiple recipients using Gmail and Google Sheets. The namesake **Group Merge** feature allows the sender to group the contents of two or more rows into one email for a single recipient.
 
+Similar to [the mail merge feature available in Microsoft Word](https://support.office.com/en-us/article/use-mail-merge-for-bulk-email-letters-labels-and-envelopes-f488ed5b-b849-4c11-9cff-932c49474705), **Group Merge** allows Gmail/Google Workspace users to send personalized emails to the recipients listed in a Google Sheets spreadsheet. Some notable features are:  
+- **Group Merge** feature combines contents of two or more entries for the same recipient into a single email.
+- Use Gmail drafts as template for mail merge. **HTML styling**, **file attachments**, **CC & BCC recipients**, and **Gmail labels** are preserved in the personalized emails.
+
 ## How to Use
 Details of the add-on is described in the [app's web page](https://www.scriptable-assets.page/add-ons/group-merge/).
 
