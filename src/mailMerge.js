@@ -43,6 +43,7 @@ const DEFAULT_CONFIG = {
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
+const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
 
 //////////////////////////
 // Add-on Card Builders //
