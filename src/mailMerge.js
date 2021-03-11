@@ -270,7 +270,8 @@ function saveUserConfig(event) {
 function createDraftEmails(event) {
   const draftMode = true;
   const config = parseConfig_(event);
-  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
+  var message = mailMerge(draftMode, config);
+  return createMessageCard(message, event.commonEventObject.userLocale);
 }
 
 /**
@@ -332,7 +333,8 @@ function sendDrafts(event) {
 function sendEmails(event) {
   const draftMode = false;
   const config = parseConfig_(event);
-  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
+  var message = mailMerge(draftMode, config);
+  return createMessageCard(message, event.commonEventObject.userLocale);
 }
 
 /**
@@ -342,6 +344,8 @@ function sendEmails(event) {
  * @returns {string} 
  */
 function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
+  var start = new Date(); //debug
+  console.log(start.getTime()); //debug
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
   var messageCount = 0;
@@ -366,6 +370,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
+    console.log(`getDisplayValues -> mergeDataEolReplaced: ${(new Date()).getTime() - start.getTime()}`); //debug
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
       let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
@@ -377,13 +382,13 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // Verify value of TO
     var Tos = [...config.TO.matchAll(config.MERGE_FIELD_MARKER)];
     if (config.TO == null || config.TO == '') {
-      throw new Error(localizedMessage.message.errorNoToEntered);
+      throw new Error(localizedMessage.messageList.errorNoToEntered);
     } else if (Tos.length > 1) {
-      throw new Error(localizedMessage.message.errorMultipleToEntered);
+      throw new Error(localizedMessage.messageList.errorMultipleToEntered);
     }
     // Verify value of TEMPLATE_SUBJECT
     if (config.TEMPLATE_SUBJECT == null || config.TEMPLATE_SUBJECT == '') {
-      throw new Error(localizedMessage.message.errorNoSubjectTextEntered);
+      throw new Error(localizedMessage.messageList.errorNoSubjectTextEntered);
     }
     // Get an array of GmailMessage class objects whose subject matches config.TEMPLATE_SUBJECT.
     let draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == config.TEMPLATE_SUBJECT);
@@ -396,14 +401,17 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       throw new Error(localizedMessage.messageList.errorNoMatchingTemplateDraft);
     }
     // Store template into an object
+    let messageTo = draftMessages[0].getTo();
+    let messageCc = draftMessages[0].getCc();
+    let messageBcc = draftMessages[0].getBcc();
     let template = {
       'subject': config.TEMPLATE_SUBJECT,
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
       'from': draftMessages[0].getFrom(),
-      'to': `${draftMessages[0].getTo()},${config.TO}`,
-      'cc': `${draftMessages[0].getCc()},${config.CC}`,
-      'bcc': `${draftMessages[0].getBcc()},${config.BCC}`,
+      'to': config.TO + (messageTo ? `,${messageTo}` : ''),
+      'cc': config.CC + (messageCc ? `,${messageCc}` : ''),
+      'bcc': config.BCC + (messageBcc ? `,${messageBcc}` : ''),
       'attachments': draftMessages[0].getAttachments({ 'includeInlineImages': false, 'includeAttachments': true }),
       'inLineImages': draftMessages[0].getAttachments({ 'includeInlineImages': true, 'includeAttachments': false }),
       'labels': draftMessages[0].getThread().getLabels(),
@@ -423,8 +431,18 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         return obj;
       }, {});
     }
+    console.log(`get Template: ${(new Date()).getTime() - start.getTime()}`); //debug
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
+    let fillInTemplate_options = {
+      'excludeFromTemplate': noPlaceholder,
+      'asHtml': ['htmlBody'],
+      'replaceValue': config.REPLACE_VALUE,
+      'mergeFieldMarker': config.MERGE_FIELD_MARKER,
+      'enableGroupMerge': config.ENABLE_GROUP_MERGE,
+      'groupFieldMarker': config.GROUP_FIELD_MARKER,
+      'rowIndexMarker': config.ROW_INDEX_MARKER
+    };
     if (config.ENABLE_GROUP_MERGE) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
       let groupedMergeData = groupArray_(mergeDataEolReplaced, Tos[0][1]);
@@ -432,19 +450,10 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error(localizedMessage.messageList.errorInvalidTo);
       }
+      console.log(`groupedMergeData: ${(new Date()).getTime() - start.getTime()}`); //debug
       // Create draft for each recipient and, depending on the value of draftMode, send it.
       for (let k in groupedMergeData) {
-        let mergeDataObjArr = groupedMergeData[k];
-        let fillInTemplate_options = {
-          'excludeFromTemplate': noPlaceholder,
-          'asHtml': ['htmlBody'],
-          'replaceValue': config.REPLACE_VALUE,
-          'mergeFieldMarker': config.MERGE_FIELD_MARKER,
-          'enableGroupMerge': config.ENABLE_GROUP_MERGE,
-          'groupFieldMarker': config.GROUP_FIELD_MARKER,
-          'rowIndexMarker': config.ROW_INDEX_MARKER
-        };
-        let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
+        let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'from': messageData.from,
@@ -455,6 +464,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
+        console.log(`message drafted at ${(new Date()).getTime() - start.getTime()}`); //debug
         // Add the same Gmail labels as those on the template draft message.
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
@@ -465,21 +475,14 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           createdDraftIds.push(draft.getId());
         }
         messageCount += 1;
+        console.log(`message labeled at ${(new Date()).getTime() - start.getTime()}`); //debug
       }
     } else {
       // Convert the 2d-array merge data into object
       let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
       groupedMergeData.data.forEach(obj => {
-        let mergeDataObjArr = [obj];
-        let fillInTemplate_options = {
-          'excludeFromTemplate': noPlaceholder,
-          'asHtml': ['htmlBody'],
-          'replaceValue': config.REPLACE_VALUE,
-          'mergeFieldMarker': config.MERGE_FIELD_MARKER,
-          'enableGroupMerge': config.ENABLE_GROUP_MERGE
-        };
-        let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
+        let messageData = fillInTemplate_(template, [obj], fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'from': messageData.from,
