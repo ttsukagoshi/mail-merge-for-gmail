@@ -201,7 +201,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .addButton(CardService.newTextButton()
         .setText(localizedMessage.messageList.buttonReadDocument)
         .setOpenLink(CardService.newOpenLink()
-          .setUrl('https://www.scriptable-assets.page/add-ons/group-merge/')))
+          .setUrl(localizedMessage.messageList.buttonReadDocumentUrl)))
       /*
       .addButton(CardService.newTextButton()
         .setText('test')
