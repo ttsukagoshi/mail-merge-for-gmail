@@ -24,15 +24,17 @@
 // Default configurations
 const DEFAULT_CONFIG = {
   SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/*****/edit',
-  DATA_SHEET_NAME: 'List',
-  RECIPIENT_COL_NAME: 'Email',
+  DATA_SHEET_NAME: 'sheetName',
+  TO: '{{Email}}',
+  CC: '',
+  BCC: '',
   TEMPLATE_SUBJECT: 'Enter subject here...',
   REPLACE_VALUE: 'NA',
-  MERGE_FIELD_MARKER_TEXT: '\\{\\{[^\\}]+\\}\\}',
-  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g, // to be deprecated
+  MERGE_FIELD_MARKER_TEXT: '\\{\\{([^\\}]+)\\}\\}',
+  MERGE_FIELD_MARKER: /\{\{([^\}]+)\}\}/g, // deprecated
   ENABLE_GROUP_MERGE: true,
-  GROUP_FIELD_MARKER_TEXT: '\\[\\[[^\\]]+\\]\\]',
-  GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g, // to be deprecated
+  GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
+  GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g, // deprecated
   ROW_INDEX_MARKER: '{{i}}',
   ENABLE_REPLY_TO: false,
   REPLY_TO: 'replyTo@email.com'
@@ -119,10 +121,20 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .setHint(localizedMessage.messageList.cardHintSheetName)
       .setValue(config.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
     .addWidget(CardService.newTextInput()
-      .setFieldName('RECIPIENT_COL_NAME')
-      .setTitle(localizedMessage.messageList.cardEnterRecipientColName)
-      .setHint(localizedMessage.messageList.cardHintRecipientColName)
-      .setValue(config.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
+      .setFieldName('TO')
+      .setTitle(localizedMessage.messageList.cardEnterTo)
+      .setHint(localizedMessage.messageList.cardHintTo)
+      .setValue(config.TO || DEFAULT_CONFIG.TO))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('CC')
+      .setTitle(localizedMessage.messageList.cardEnterCc)
+      .setHint(localizedMessage.messageList.cardHintCc)
+      .setValue(config.CC || DEFAULT_CONFIG.CC))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('BCC')
+      .setTitle(localizedMessage.messageList.cardEnterBcc)
+      .setHint(localizedMessage.messageList.cardHintBcc)
+      .setValue(config.BCC || DEFAULT_CONFIG.BCC)));
   // Template Draft Section
   builder.addSection(CardService.newCardSection()
     .setHeader(localizedMessage.messageList.cardTemplateDraftSettings)
@@ -338,7 +350,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
   // Save current settings in user property
   userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
   // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
-  var noPlaceholder = ['ccTo', 'bccTo', 'from', 'attachments', 'inLineImages', 'labels'];
+  var noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
   if (config.hostApp == 'SHEETS') {
     var ui = SpreadsheetApp.getUi();
   }
@@ -361,9 +373,16 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
       }
     }
-    // Get template from Gmail draft
+    // Verify value of TO
+    var Tos = [...config.TO.matchAll(config.MERGE_FIELD_MARKER)];
+    if (config.TO == null || config.TO == '') {
+      throw new Error(localizedMessage.message.errorNoToEntered);
+    } else if (Tos.length > 1) {
+      throw new Error(localizedMessage.message.errorMultipleToEntered);
+    }
+    // Verify value of TEMPLATE_SUBJECT
     if (config.TEMPLATE_SUBJECT == null || config.TEMPLATE_SUBJECT == '') {
-      throw new Error(localizedMessage.message.errorNoTextEntered);
+      throw new Error(localizedMessage.message.errorNoSubjectTextEntered);
     }
     // Get an array of GmailMessage class objects whose subject matches config.TEMPLATE_SUBJECT.
     let draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == config.TEMPLATE_SUBJECT);
@@ -381,8 +400,9 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
       'from': draftMessages[0].getFrom(),
-      'ccTo': draftMessages[0].getCc(),
-      'bccTo': draftMessages[0].getBcc(),
+      'to': `${draftMessages[0].getTo()},${config.TO}`,
+      'cc': `${draftMessages[0].getCc()},${config.CC}`,
+      'bcc': `${draftMessages[0].getBcc()},${config.BCC}`,
       'attachments': draftMessages[0].getAttachments({ 'includeInlineImages': false, 'includeAttachments': true }),
       'inLineImages': draftMessages[0].getAttachments({ 'includeInlineImages': true, 'includeAttachments': false }),
       'labels': draftMessages[0].getThread().getLabels(),
@@ -406,10 +426,10 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // The process depends on the value of ENABLE_GROUP_MERGE
     if (config.ENABLE_GROUP_MERGE) {
       // Convert the 2d-array merge data into object grouped by recipient(s)
-      let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
+      let groupedMergeData = groupArray_(mergeDataEolReplaced, Tos[0][1]);
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
-        throw new Error(localizedMessage.messageList.errorInvalidRECIPIENT_COL_NAME);
+        throw new Error(localizedMessage.messageList.errorInvalidTo);
       }
       // Create draft for each recipient and, depending on the value of draftMode, send it.
       for (let k in groupedMergeData) {
@@ -427,13 +447,13 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'from': messageData.from,
-          'cc': messageData.ccTo,
-          'bcc': messageData.bccTo,
+          'cc': messageData.cc,
+          'bcc': messageData.bcc,
           'attachments': (messageData.attachments ? messageData.attachments : null),
           'inlineImages': (isPlainText ? null : inLineImageBlobs),
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
-        let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
+        let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
         // Add the same Gmail labels as those on the template draft message.
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
@@ -462,13 +482,13 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'from': messageData.from,
-          'cc': messageData.ccTo,
-          'bcc': messageData.bccTo,
+          'cc': messageData.cc,
+          'bcc': messageData.bcc,
           'attachments': (messageData.attachments ? messageData.attachments : null),
           'inlineImages': (isPlainText ? null : inLineImageBlobs),
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
-        let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
+        let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
         if (!draftMode) {
@@ -512,7 +532,9 @@ function parseConfig_(eventObj) {
   var targetSettings = [ // A complete list of the form input items in createMailMergeCard
     'SPREADSHEET_URL',
     'DATA_SHEET_NAME',
-    'RECIPIENT_COL_NAME',
+    'TO',
+    'CC',
+    'BCC',
     'TEMPLATE_SUBJECT',
     'ENABLE_GROUP_MERGE',
     'ENABLE_REPLY_TO',
@@ -624,7 +646,7 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupTexts = text.match(options.groupFieldMarker);
+      let groupTexts = [...text.matchAll(options.groupFieldMarker)].map(element => element[1]);
       // If the number of group field marker is not 0...
       if (groupTexts !== null) {
         let groupTextsMerged = groupTexts.map((field) => {
