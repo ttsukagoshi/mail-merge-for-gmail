@@ -43,7 +43,7 @@ const DEFAULT_CONFIG = {
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
-const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+// const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
 
 //////////////////////////
 // Add-on Card Builders //
@@ -344,8 +344,8 @@ function sendEmails(event) {
  * @returns {string} 
  */
 function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
-  var start = new Date(); //debug
-  console.log(start.getTime()); //debug
+  // var start = new Date(); //debug
+  // console.log(start.getTime()); //debug
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
   var messageCount = 0;
@@ -370,7 +370,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    console.log(`getDisplayValues -> mergeDataEolReplaced: ${(new Date()).getTime() - start.getTime()}`); //debug
+    // console.log(`getDisplayValues -> mergeDataEolReplaced: ${(new Date()).getTime() - start.getTime()}`); //debug
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
       let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
@@ -431,7 +431,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         return obj;
       }, {});
     }
-    console.log(`get Template: ${(new Date()).getTime() - start.getTime()}`); //debug
+    // console.log(`get Template: ${(new Date()).getTime() - start.getTime()}`); //debug
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
     let fillInTemplate_options = {
@@ -450,7 +450,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error(localizedMessage.messageList.errorInvalidTo);
       }
-      console.log(`groupedMergeData: ${(new Date()).getTime() - start.getTime()}`); //debug
+      // console.log(`groupedMergeData: ${(new Date()).getTime() - start.getTime()}`); //debug
       // Create draft for each recipient and, depending on the value of draftMode, send it.
       for (let k in groupedMergeData) {
         let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
@@ -464,7 +464,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
-        console.log(`message drafted at ${(new Date()).getTime() - start.getTime()}`); //debug
+        // console.log(`message drafted at ${(new Date()).getTime() - start.getTime()}`); //debug
         // Add the same Gmail labels as those on the template draft message.
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
@@ -475,7 +475,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           createdDraftIds.push(draft.getId());
         }
         messageCount += 1;
-        console.log(`message labeled at ${(new Date()).getTime() - start.getTime()}`); //debug
+        // console.log(`message labeled at ${(new Date()).getTime() - start.getTime()}`); //debug
       }
     } else {
       // Convert the 2d-array merge data into object
