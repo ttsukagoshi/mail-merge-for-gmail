@@ -43,7 +43,8 @@ const DEFAULT_CONFIG = {
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
-// const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger. Currently in development; not yet released.
 
 //////////////////////////
 // Add-on Card Builders //
@@ -344,8 +345,7 @@ function sendEmails(event) {
  * @returns {string} 
  */
 function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
-  // var start = new Date(); //debug
-  // console.log(start.getTime()); //debug
+  var debugInfo = { 'start': (new Date()).getTime(), 'processTime': [], 'completedRecipients': [] };
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
   var messageCount = 0;
@@ -370,7 +370,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    // console.log(`getDisplayValues -> mergeDataEolReplaced: ${(new Date()).getTime() - start.getTime()}`); //debug
+    debugInfo.processTime.push(`Retrieved recipient list data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
       let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
@@ -378,6 +378,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
       }
+      debugInfo.processTime.push(`Passed UI confirmation on SHEETS at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     }
     // Verify value of TO
     var Tos = [...config.TO.matchAll(config.MERGE_FIELD_MARKER)];
@@ -417,6 +418,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       'labels': draftMessages[0].getThread().getLabels(),
       'replyTo': (config.ENABLE_REPLY_TO ? config.REPLY_TO : '')
     };
+    debugInfo.processTime.push(`Retrieved template draft data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
     let inLineImageBlobs = {};
@@ -430,27 +432,27 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         obj[cid] = blob;
         return obj;
       }, {});
+      debugInfo.processTime.push(`Template is composed in HTML. Retrieved ${template.inLineImages.length} in-line image data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     }
-    // console.log(`get Template: ${(new Date()).getTime() - start.getTime()}`); //debug
     // Create draft or send email based on the template.
     // The process depends on the value of ENABLE_GROUP_MERGE
     let fillInTemplate_options = {
       'excludeFromTemplate': noPlaceholder,
-      'asHtml': ['htmlBody'],
+      'asHtml': [(!isPlainText ? 'htmlBody': '')],
       'replaceValue': config.REPLACE_VALUE,
       'mergeFieldMarker': config.MERGE_FIELD_MARKER,
       'enableGroupMerge': config.ENABLE_GROUP_MERGE,
       'groupFieldMarker': config.GROUP_FIELD_MARKER,
       'rowIndexMarker': config.ROW_INDEX_MARKER
     };
+    // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
+    let groupedMergeData = groupArray_(mergeDataEolReplaced, (config.ENABLE_GROUP_MERGE ? Tos[0][1] : null));
     if (config.ENABLE_GROUP_MERGE) {
-      // Convert the 2d-array merge data into object grouped by recipient(s)
-      let groupedMergeData = groupArray_(mergeDataEolReplaced, Tos[0][1]);
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
         throw new Error(localizedMessage.messageList.errorInvalidTo);
       }
-      // console.log(`groupedMergeData: ${(new Date()).getTime() - start.getTime()}`); //debug
+      debugInfo.processTime.push(`Group Merge is enabled. Grouped recipient list by recipient email address at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
       // Create draft for each recipient and, depending on the value of draftMode, send it.
       for (let k in groupedMergeData) {
         let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
@@ -464,7 +466,6 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
         };
         let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
-        // console.log(`message drafted at ${(new Date()).getTime() - start.getTime()}`); //debug
         // Add the same Gmail labels as those on the template draft message.
         let draftThread = draft.getMessage().getThread();
         messageData.labels.forEach(label => draftThread.addLabel(label));
@@ -475,11 +476,16 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           createdDraftIds.push(draft.getId());
         }
         messageCount += 1;
-        // console.log(`message labeled at ${(new Date()).getTime() - start.getTime()}`); //debug
+        // Determine current process time lapse. If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
+        let timeLapsed = (new Date()).getTime() - debugInfo.start;
+        debugInfo.processTime.push(`Message for ${k} drafted at ${timeLapsed} (millisec from start)`);
+        debugInfo.completedRecipients.push(k);
+        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET) {
+          let postProcessStart = new Date();
+          debugInfo.processTime.push(``);
+        }
       }
     } else {
-      // Convert the 2d-array merge data into object
-      let groupedMergeData = groupArray_(mergeDataEolReplaced);
       // Create draft or send email for each recipient
       groupedMergeData.data.forEach(obj => {
         let messageData = fillInTemplate_(template, [obj], fillInTemplate_options);
@@ -650,14 +656,12 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupTexts = [...text.matchAll(options.groupFieldMarker)].map(element => element[1]);
+      let groupTexts = [...text.matchAll(options.groupFieldMarker)].map(element => element[1]);////////////////////////////
       // If the number of group field marker is not 0...
       if (groupTexts !== null) {
-        let groupTextsMerged = groupTexts.map((field) => {
-          // Get the text inside group field markers, e.g., [[group field]] => group field
-          field = field.substring(2, field.length - 2); // assuming that the text length for opening and closing markers are 2 and 2, respectively
+        let groupTextsMerged = groupTexts.map(field => {
           // Create an array of merge field markers within a group merge marker
-          let fieldVars = field.match(options.mergeFieldMarker);
+          let fieldVars = [...field.matchAll(options.mergeFieldMarker)].map(element => element[1]);
           if (!fieldVars) {
             return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
