@@ -4,8 +4,31 @@
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "oauthScopes": [
-    "https://mail.google.com/",
+    "https://www.googleapis.com/auth/gmail.addons.execute",
+    "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/script.locale",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/userinfo.email"
-  ]
+  ],
+  "addOns": {
+    "common": {
+      "name": "Group Merge: Mail Merge for Gmail",
+      "logoUrl": "https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no",
+      "layoutProperties": {
+        "primaryColor": "#cc2f00",
+        "secondaryColor": "#631700"
+      },
+      "openLinkUrlPrefixes": [
+        "https://www.scriptable-assets.page/"
+      ],
+      "useLocaleFromApp": true,
+      "homepageTrigger": {
+        "runFunction": "buildHomepage",
+        "enabled": true
+      }
+    },
+    "gmail": {},
+    "sheets": {}
+  }
 }
