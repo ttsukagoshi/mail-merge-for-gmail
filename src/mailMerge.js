@@ -271,8 +271,7 @@ function saveUserConfig(event) {
 function createDraftEmails(event) {
   const draftMode = true;
   const config = parseConfig_(event);
-  var message = mailMerge(draftMode, config);
-  return createMessageCard(message, event.commonEventObject.userLocale);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
 }
 
 /**
@@ -334,8 +333,7 @@ function sendDrafts(event) {
 function sendEmails(event) {
   const draftMode = false;
   const config = parseConfig_(event);
-  var message = mailMerge(draftMode, config);
-  return createMessageCard(message, event.commonEventObject.userLocale);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
 }
 
 /**
@@ -345,7 +343,12 @@ function sendEmails(event) {
  * @returns {string} 
  */
 function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
-  var debugInfo = { 'start': (new Date()).getTime(), 'processTime': [], 'completedRecipients': [] };
+  var debugInfo = {
+    'completedRecipients': [],
+    'config': JSON.stringify(config),
+    'processTime': [],
+    'start': (new Date()).getTime()
+  };
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
   var messageCount = 0;
@@ -447,6 +450,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     };
     // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
     let groupedMergeData = groupArray_(mergeDataEolReplaced, (config.ENABLE_GROUP_MERGE ? Tos[0][1] : null));
+    debugInfo.processTime.push(`Group Merge is ${(config.ENABLE_GROUP_MERGE ? 'enabled. Grouped recipient list by recipient email address' : 'disabled. Data stored in groupedMergeData')} at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     if (config.ENABLE_GROUP_MERGE) {
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
@@ -656,26 +660,23 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupTexts = [...text.matchAll(options.groupFieldMarker)].map(element => element[1]);////////////////////////////
+      let groupTexts = [...text.matchAll(options.groupFieldMarker)];
       // If the number of group field marker is not 0...
-      if (groupTexts !== null) {
-        let groupTextsMerged = groupTexts.map(field => {
+      if (groupTexts.length) {
+        let groupTextsMerged = groupTexts.map(groupMergeField => {
           // Create an array of merge field markers within a group merge marker
-          let fieldVars = [...field.matchAll(options.mergeFieldMarker)].map(element => element[1]);
-          if (!fieldVars) {
-            return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
+          let fieldVars = [...groupMergeField[1].matchAll(options.mergeFieldMarker)];
+          if (!fieldVars.length) {
+            return groupMergeField; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
             let fieldMerged = [];
             data.forEach((datum, i) => {
               let rowIndex = i + 1;
-              let fieldRowIndexed = field.replace(options.rowIndexMarker, rowIndex);
-              let fieldVarsCopy = fieldVars.slice();
-              // Get the text inside markers, e.g., {{field name}} => field name
-              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-              fieldVarsCopy.forEach((variable, ind) => {
-                let replaceValue = datum[fieldMarkerText[ind]] || options.replaceValue;
+              let fieldRowIndexed = groupMergeField[1].replace(options.rowIndexMarker, rowIndex);
+              fieldVars.forEach((variable, ind) => {
+                let replaceValue = datum[fieldVars[ind][1]] || options.replaceValue;
                 replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-                fieldRowIndexed = fieldRowIndexed.replace(variable, replaceValue);
+                fieldRowIndexed = fieldRowIndexed.replace(variable[0], replaceValue);
               });
               fieldMerged.push(fieldRowIndexed);
             });
@@ -683,24 +684,22 @@ function fillInTemplate_(template, data, options) {
             return fieldMergedText;
           }
         });
-        groupTexts.forEach((groupField, index) => text = text.replace(groupField, groupTextsMerged[index] || options.replaceValue));
+        groupTexts.forEach((groupField, index) => text = text.replace(groupField[0], groupTextsMerged[index] || options.replaceValue));
       }
     }
     // merging the rest of the field based on the first row of data object array.
     let mergeData = data[0];
     // Create an array of all merge fields to be replaced
-    let textVars = text.match(options.mergeFieldMarker);
-    if (!textVars) {
+    let textVars = [...text.matchAll(options.mergeFieldMarker)];
+    if (!textVars.length) {
       messageData[k] = text; // return text itself if no marker is found
     } else {
-      // Get the text inside markers, e.g., {{field name}} => field name 
-      let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
       // If no value is available, replace with replaceValue.
       textVars.forEach((variable, ind) => {
-        let replaceValue = mergeData[markerText[ind]] || options.replaceValue;
+        let replaceValue = mergeData[textVars[ind][1]] || options.replaceValue;
         replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-        text = text.replace(variable, replaceValue);
+        text = text.replace(variable[0], replaceValue);
       });
       messageData[k] = text;
     }
