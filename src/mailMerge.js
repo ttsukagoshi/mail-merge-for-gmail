@@ -37,14 +37,17 @@ const DEFAULT_CONFIG = {
   GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g, // deprecated
   ROW_INDEX_MARKER: '{{i}}',
   ENABLE_REPLY_TO: false,
-  REPLY_TO: 'replyTo@email.com'
+  REPLY_TO: 'replyTo@email.com',
+  ENABLE_DEBUG_MODE: false
 };
 // Key(s) for storing and calling settings stored as user property
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
-const ACTION_LIMIT_TIME = 30 * 1000; // Milliseconds. Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
-const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger. Currently in development; not yet released.
+// Key lengths in milliseconds regarding time limit of add-on card actions.
+const ACTION_LIMIT_TIME = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger.
+const EXECUTE_TRIGGER_AFTER = 5 * 1000; // Milliseconds after which the mail merge process will resume by a scheduled trigger.
 
 //////////////////////////
 // Add-on Card Builders //
@@ -102,7 +105,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
   // Message Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newTextParagraph()
-      .setText(localizedMessage.messageList.cardMessage))
+      .setText(localizedMessage.messageList.cardHomepageMessage))
     .addWidget(CardService.newButtonSet()
       .addButton(CardService.newTextButton()
         .setText(localizedMessage.messageList.buttonSendDrafts)
@@ -185,7 +188,13 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .setFieldName('ROW_INDEX_MARKER')
       .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
       .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
-      .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
+      .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER))
+    .addWidget(CardService.newDecoratedText()
+      .setText(localizedMessage.messageList.cardSwitchEnableDebugMode)
+      .setSwitchControl(CardService.newSwitch()
+        .setSelected(typeof config.ENABLE_DEBUG_MODE == 'boolean' ? config.ENABLE_DEBUG_MODE : DEFAULT_CONFIG.ENABLE_DEBUG_MODE)
+        .setFieldName('ENABLE_DEBUG_MODE')
+        .setValue('enabled'))));
   // Buttons Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newButtonSet()
@@ -259,8 +268,10 @@ function saveUserConfig(event) {
   // Construct complete message
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
-  for (let k in config) {
-    cardMessage += `<b>${k}: ${config[k]}\n`;
+  if (config.ENABLE_DEBUG_MODE) {
+    for (let k in config) {
+      cardMessage += `<b>${k}: ${config[k]}\n`;
+    }
   }
   return createMessageCard(cardMessage, config.userLocale);
 }
@@ -271,8 +282,7 @@ function saveUserConfig(event) {
 function createDraftEmails(event) {
   const draftMode = true;
   const config = parseConfig_(event);
-  var message = mailMerge(draftMode, config);
-  return createMessageCard(message, event.commonEventObject.userLocale);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
 }
 
 /**
@@ -280,6 +290,7 @@ function createDraftEmails(event) {
  */
 function sendDrafts(event) {
   const config = parseConfig_(event);
+  var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var userProperties = PropertiesService.getUserProperties();
   var cardMessage = '';
@@ -288,7 +299,7 @@ function sendDrafts(event) {
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
       var ui = SpreadsheetApp.getUi();
-      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(Session.getActiveUser().getEmail());
+      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(myEmail);
       let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
@@ -322,8 +333,16 @@ function sendDrafts(event) {
     } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
       cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
-      cardMessage = 'Unexpected Error:\n' + error.stack;
+      cardMessage = localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
+  }
+  if (config.ENABLE_DEBUG_MODE) {
+    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
+    for (let k in debugInfo) {
+      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
+    }
+    MailApp.sendEmail(myEmail, `[GROUP MERGE] Debug Info`, `${cardMessage}\n\n${debugInfoText}`);
+    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
   }
   return createMessageCard(cardMessage, config.userLocale);
 }
@@ -334,8 +353,24 @@ function sendDrafts(event) {
 function sendEmails(event) {
   const draftMode = false;
   const config = parseConfig_(event);
-  var message = mailMerge(draftMode, config);
-  return createMessageCard(message, event.commonEventObject.userLocale);
+  return createMessageCard(mailMerge(draftMode, config), event.commonEventObject.userLocale);
+}
+
+/**
+ * Post-process for mailMerge(); continues the process of mail merge
+ * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
+ */
+function postProcessMailMerge() {
+  var userPropertiesValues = PropertiesService.getUserProperties().getProperties();
+  var draftMode = (userPropertiesValues['draftMode'] === 'true');
+  var config = JSON.parse(userPropertiesValues[UP_KEY_PREV_CONFIG]);
+  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
+  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
+  var prevProperties = {
+    completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
+    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds)
+  };
+  mailMerge(draftMode, config, prevProperties)
 }
 
 /**
@@ -344,19 +379,27 @@ function sendEmails(event) {
  * @param {Object} config Object returned by parseConfig_(eventObj)
  * @returns {string} 
  */
-function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
-  var debugInfo = { 'start': (new Date()).getTime(), 'processTime': [], 'completedRecipients': [] };
+function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {}) {
+  var isPostProcess = (Object.keys(prevProperties).length > 0);
+  var debugInfo = {
+    completedRecipients: [],
+    config: config,
+    draftMode: draftMode,
+    prevCompletedRecipients: (isPostProcess ? prevProperties.completedRecipients : []),
+    processTime: [],
+    start: (new Date()).getTime()
+  };
+  var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
-  var messageCount = 0;
   // Reset list of created drafts
-  var createdDraftIds = [];
+  var createdDraftIds = (isPostProcess ? prevProperties.createdDraftIds : []);
   var userProperties = PropertiesService.getUserProperties().setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
   // Save current settings in user property
   userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
   // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
   var noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
-  if (config.hostApp == 'SHEETS') {
+  if (config.hostApp == 'SHEETS' && !isPostProcess) {
     var ui = SpreadsheetApp.getUi();
   }
   try {
@@ -371,9 +414,9 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
     debugInfo.processTime.push(`Retrieved recipient list data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-    if (config.hostApp == 'SHEETS') {
+    if (config.hostApp == 'SHEETS' && !isPostProcess) {
       // Confirmation before sending email
-      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
+      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
       let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
@@ -438,7 +481,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // The process depends on the value of ENABLE_GROUP_MERGE
     let fillInTemplate_options = {
       'excludeFromTemplate': noPlaceholder,
-      'asHtml': [(!isPlainText ? 'htmlBody': '')],
+      'asHtml': [(isPlainText ? '' : 'htmlBody')],
       'replaceValue': config.REPLACE_VALUE,
       'mergeFieldMarker': config.MERGE_FIELD_MARKER,
       'enableGroupMerge': config.ENABLE_GROUP_MERGE,
@@ -447,6 +490,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     };
     // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
     let groupedMergeData = groupArray_(mergeDataEolReplaced, (config.ENABLE_GROUP_MERGE ? Tos[0][1] : null));
+    debugInfo.processTime.push(`Group Merge is ${(config.ENABLE_GROUP_MERGE ? 'enabled. Grouped recipient list by recipient email address' : 'disabled. Data stored in groupedMergeData')} at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     if (config.ENABLE_GROUP_MERGE) {
       // Validity check
       if (Object.keys(groupedMergeData).length == 0) {
@@ -455,6 +499,9 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       debugInfo.processTime.push(`Group Merge is enabled. Grouped recipient list by recipient email address at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
       // Create draft for each recipient and, depending on the value of draftMode, send it.
       for (let k in groupedMergeData) {
+        if (debugInfo.prevCompletedRecipients.includes(k)) {
+          continue;
+        }
         let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
@@ -475,20 +522,34 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           // List the created draft ID
           createdDraftIds.push(draft.getId());
         }
-        messageCount += 1;
-        // Determine current process time lapse. If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
+        // Determine current process time lapse.
+        // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
         let timeLapsed = (new Date()).getTime() - debugInfo.start;
-        debugInfo.processTime.push(`Message for ${k} drafted at ${timeLapsed} (millisec from start)`);
+        debugInfo.processTime.push(`Message for ${k} drafted/sent at ${timeLapsed} (millisec from start)`);
         debugInfo.completedRecipients.push(k);
-        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET) {
-          let postProcessStart = new Date();
-          debugInfo.processTime.push(``);
+        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
+          debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+          userProperties.setProperties({
+            completedRecipients: JSON.stringify(debugInfo.completedRecipients),
+            createdDraftIds: JSON.stringify(createdDraftIds),
+            draftMode: draftMode
+          }, false);
+          ScriptApp.newTrigger('postProcessMailMerge')
+            .timeBased()
+            .after(EXECUTE_TRIGGER_AFTER)
+            .create();
+          debugInfo.processTime.push(`Saved property and set trigger for post-process at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
+          throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
         }
       }
     } else {
+      debugInfo.processTime.push(`Group Merge is disabled. Proceeding with mail merge at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
       // Create draft or send email for each recipient
       groupedMergeData.data.forEach(obj => {
         let messageData = fillInTemplate_(template, [obj], fillInTemplate_options);
+        if (debugInfo.prevCompletedRecipients.includes(messageData.to)) {
+          return;
+        }
         let options = {
           'htmlBody': (isPlainText ? null : messageData.htmlBody),
           'from': messageData.from,
@@ -507,11 +568,30 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
           // List the created draft ID
           createdDraftIds.push(draft.getId());
         }
-        messageCount += 1;
+        // Determine current process time lapse.
+        // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
+        let timeLapsed = (new Date()).getTime() - debugInfo.start;
+        debugInfo.processTime.push(`Message for ${messageData.to} drafted/sent at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
+        debugInfo.completedRecipients.push(messageData.to);
+        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
+          debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+          userProperties.setProperties({
+            completedRecipients: JSON.stringify(debugInfo.completedRecipients),
+            createdDraftIds: JSON.stringify(createdDraftIds),
+            draftMode: draftMode
+          }, false);
+          ScriptApp.newTrigger('postProcessMailMerge')
+            .timeBased()
+            .after(EXECUTE_TRIGGER_AFTER)
+            .create();
+          debugInfo.processTime.push(`Saved property and set trigger for post-process at ${timeLapsed} (millisec from start)`);
+          throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
+        }
       });
     }
     // Notification
-    cardMessage = localizedMessage.replaceCompleteMessage(draftMode, messageCount);
+    debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+    cardMessage = localizedMessage.replaceCompleteMessage(draftMode, debugInfo.completedRecipients.length);
   } catch (error) {
     let knownErrorMessages = [];
     for (let k in localizedMessage.messageList) {
@@ -520,16 +600,26 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       }
       knownErrorMessages.push(localizedMessage.messageList[k]);
     }
-    if (knownErrorMessages.includes(error.message)) {
+    if (knownErrorMessages.includes(error.message) || error.message.startsWith(localizedMessage.messageList.proceedingToPostProcess.slice(0, 10))) {
       cardMessage = error.message;
-    } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
+    } else if (error.message.startsWith(localizedMessage.messageList.appsScriptMessageErrorOnOpenByUrl) || error.message.startsWith(localizedMessage.messageList.appsScriptMessageNoPermissionErrorStartsWith)) {
       cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
-      cardMessage = 'Unexpected Error:\n' + error.stack;
-      console.error(cardMessage);
+      cardMessage = localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
   }
   userProperties.setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
+  if (config.ENABLE_DEBUG_MODE) {
+    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
+    for (let k in debugInfo) {
+      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
+    }
+    MailApp.sendEmail(myEmail, `[GROUP MERGE] Debug Info`, `${cardMessage}\n\n${debugInfoText}`);
+    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
+  }
+  if (isPostProcess) {
+    MailApp.sendEmail(myEmail, localizedMessage.messageList.subjectPostProcessUpdate, cardMessage);
+  }
   return cardMessage;
 }
 
@@ -552,16 +642,18 @@ function parseConfig_(eventObj) {
     'REPLACE_VALUE',
     'MERGE_FIELD_MARKER_TEXT',
     'GROUP_FIELD_MARKER_TEXT',
-    'ROW_INDEX_MARKER'
+    'ROW_INDEX_MARKER',
+    'ENABLE_DEBUG_MODE'
   ];
   let configObj = targetSettings.reduce((config, item) => {
     let input = eventObj.commonEventObject.formInputs[item] || { 'stringInputs': { 'value': [''] } };
     let value = input.stringInputs.value[0];
-    if (item == 'ENABLE_GROUP_MERGE' || item == 'ENABLE_REPLY_TO') {
+    if (item == 'ENABLE_GROUP_MERGE' || item == 'ENABLE_REPLY_TO' || item == 'ENABLE_DEBUG_MODE') {
       value = (value == 'enabled' || value == 'true');
     } else if (item == 'MERGE_FIELD_MARKER_TEXT' || item == 'GROUP_FIELD_MARKER_TEXT') {
-      item = item.replace('_TEXT', '');
-      value = new RegExp(value, 'g');
+      let itemRegexp = item.replace('_TEXT', '');
+      let valueRegexp = new RegExp(value, 'g');
+      config[itemRegexp] = valueRegexp;
     }
     config[item] = value;
     return config;
@@ -656,26 +748,23 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupTexts = [...text.matchAll(options.groupFieldMarker)].map(element => element[1]);////////////////////////////
+      let groupTexts = [...text.matchAll(options.groupFieldMarker)];
       // If the number of group field marker is not 0...
-      if (groupTexts !== null) {
-        let groupTextsMerged = groupTexts.map(field => {
+      if (groupTexts.length) {
+        let groupTextsMerged = groupTexts.map(groupMergeField => {
           // Create an array of merge field markers within a group merge marker
-          let fieldVars = [...field.matchAll(options.mergeFieldMarker)].map(element => element[1]);
-          if (!fieldVars) {
-            return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
+          let fieldVars = [...groupMergeField[1].matchAll(options.mergeFieldMarker)];
+          if (!fieldVars.length) {
+            return groupMergeField; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
             let fieldMerged = [];
             data.forEach((datum, i) => {
               let rowIndex = i + 1;
-              let fieldRowIndexed = field.replace(options.rowIndexMarker, rowIndex);
-              let fieldVarsCopy = fieldVars.slice();
-              // Get the text inside markers, e.g., {{field name}} => field name
-              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-              fieldVarsCopy.forEach((variable, ind) => {
-                let replaceValue = datum[fieldMarkerText[ind]] || options.replaceValue;
+              let fieldRowIndexed = groupMergeField[1].replace(options.rowIndexMarker, rowIndex);
+              fieldVars.forEach((variable, ind) => {
+                let replaceValue = datum[fieldVars[ind][1]] || options.replaceValue;
                 replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-                fieldRowIndexed = fieldRowIndexed.replace(variable, replaceValue);
+                fieldRowIndexed = fieldRowIndexed.replace(variable[0], replaceValue);
               });
               fieldMerged.push(fieldRowIndexed);
             });
@@ -683,24 +772,22 @@ function fillInTemplate_(template, data, options) {
             return fieldMergedText;
           }
         });
-        groupTexts.forEach((groupField, index) => text = text.replace(groupField, groupTextsMerged[index] || options.replaceValue));
+        groupTexts.forEach((groupField, index) => text = text.replace(groupField[0], groupTextsMerged[index] || options.replaceValue));
       }
     }
     // merging the rest of the field based on the first row of data object array.
     let mergeData = data[0];
     // Create an array of all merge fields to be replaced
-    let textVars = text.match(options.mergeFieldMarker);
-    if (!textVars) {
+    let textVars = [...text.matchAll(options.mergeFieldMarker)];
+    if (!textVars.length) {
       messageData[k] = text; // return text itself if no marker is found
     } else {
-      // Get the text inside markers, e.g., {{field name}} => field name 
-      let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
       // If no value is available, replace with replaceValue.
       textVars.forEach((variable, ind) => {
-        let replaceValue = mergeData[markerText[ind]] || options.replaceValue;
+        let replaceValue = mergeData[textVars[ind][1]] || options.replaceValue;
         replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-        text = text.replace(variable, replaceValue);
+        text = text.replace(variable[0], replaceValue);
       });
       messageData[k] = text;
     }
