@@ -15,7 +15,7 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported buildHomepage, buildHomepageRestoreUserConfig, buildHomepageRestoreDefault, saveUserConfig, createDraftEmails, sendDrafts, sendEmails */
+/* exported buildHomepage, buildHomepageRestoreDefault, buildHomepageRestoreUserConfig, createDraftEmails, postProcessMailMerge, saveUserConfig, sendDrafts, sendEmails */
 
 //////////////////////
 // Global Variables //
@@ -330,19 +330,9 @@ function sendDrafts(event) {
     }
     if (knownErrorMessages.includes(error.message)) {
       cardMessage = error.message;
-    } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
-      cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
       cardMessage = localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
-  }
-  if (config.ENABLE_DEBUG_MODE) {
-    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
-    for (let k in debugInfo) {
-      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
-    }
-    MailApp.sendEmail(myEmail, `[GROUP MERGE] Debug Info`, `${cardMessage}\n\n${debugInfoText}`);
-    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
   }
   return createMessageCard(cardMessage, config.userLocale);
 }
@@ -370,7 +360,7 @@ function postProcessMailMerge() {
     completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
     createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds)
   };
-  mailMerge(draftMode, config, prevProperties)
+  mailMerge(draftMode, config, prevProperties);
 }
 
 /**
@@ -387,7 +377,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {
     draftMode: draftMode,
     prevCompletedRecipients: (isPostProcess ? prevProperties.completedRecipients : []),
     processTime: [],
-    start: (new Date()).getTime()
+    start: (new Date()).getTime() //, templateDraftId: ''
   };
   var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
