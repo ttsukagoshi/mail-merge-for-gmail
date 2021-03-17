@@ -22,7 +22,7 @@
 
 const MESSAGES = {
   'en': {
-    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nOpen-sourced add-on to send personalized emails based on Gmail template to multiple recipients. The unique <b>Group Merge</b> feature allows sender to group multiple contents for the same recipient in a single email.\n\nEnter the following items and select <b><i>Create Drafts</i></b> or <b><i>Send Emails</i></b>. <b>All items are required fields</b> unless otherwise noted.',
+    'cardHomepageMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nOpen-sourced add-on to send personalized emails based on Gmail template to multiple recipients. The unique <b>Group Merge</b> feature allows sender to group multiple contents for the same recipient in a single email.\n\nEnter the following items and select <b><i>Create Drafts</i></b> or <b><i>Send Emails</i></b>. <b>All items are required fields</b> unless otherwise noted.',
     'cardRecipientListSettings': '1. Recipient List',
     'cardEnterSpreadsheetUrl': 'Spreadsheet URL',
     'cardHintSpreadsheetUrl': 'Enter the full URL of the Google Sheets spreadsheet used as the list of recipients.',
@@ -50,6 +50,10 @@ const MESSAGES = {
     'cardHintGroupFieldMarker': 'Text to be processed in RegExp() constructor to define group merge field(s). Be sure to use parentheses to denote the capturing group to mark the content of the field. Note that the backslash itself does not need to be escaped.',
     'cardEnterRowIndexMarker': 'Row Index Marker',
     'cardHintRowIndexMarker': 'Marker for merging row index number in a group merge.',
+    'cardSwitchEnableDebugMode': 'Enable debug mode',
+    'cardMessageUnexpectedError': 'Unexpected Error:\n',
+    'cardMessageDebugInfo': 'Debug Info\nBe careful to exclude any sensitive information, like your clients\' email addresses, if you are going to copy & paste the below debug information elsewhere:\n\n',
+    'cardMessageSentDebugInfo': '<b>Email of the debug info is sent to your Gmail account.</b>',
     'buttonRestoreUserConfig': 'Restore User Settings',
     'buttonRestoreDefault': 'Restore Default Settings',
     'buttonReadDocument': 'Read Document',
@@ -75,10 +79,14 @@ const MESSAGES = {
     'alertConfirmSendingOfDraft': 'Are you sure you want to send the draft email(s) as {{myEmail}}?\nOnly the drafts created by "Create Drafts" will be sent.',
     'errorSendDraftsCanceled': 'Sending drafts is canceled.',
     'errorNoDraftToSend': '[Mail Merge Error]\nNo draft found. Execute "Create Drafts" to create merged drafts.',
-    'alertCompleteSavedUserConfig': 'Complete: Saved user settings.\n\n'
+    'alertCompleteSavedUserConfig': 'Complete: Saved user settings.\n\n',
+    'appsScriptMessageErrorOnOpenByUrlStartsWith': 'Unexpected error while getting the method or property openByUrl',
+    'appsScriptMessageNoPermissionErrorStartsWith': 'You do not have permission to access the requested document.',
+    'proceedingToPostProcess': 'Since the current mail merge process is expected to exceed the {{actionLimitTimeInSec}}-second execution time limit, the remaining process will be conducted on a time-based trigger. A mail report will be sent to {{myEmail}} once the whole process is complete.\nDraft Mode: {{draftMode}}\nMessage Count: {{messageCount}}',
+    'subjectPostProcessUpdate': '[GROUP MERGE] Mail Merge Notice'
   },
   'ja': {
-    'cardMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nオープンソースで利用可能なGmailのための差し込みメール作成用アドオン。同じ宛先への複数行にわたる情報を1通のメールにまとめられる<b>まとめ差し込み（Group Merge）</b>機能付き。\n\n以下の項目を入力して「<b>テスト差込（下書きメール作成）</b>」または「<b>差込み送信（メール送信）</b>」を選択してください。\n別途説明がある項目を除けば<b>すべて必須の入力項目</b>です。',
+    'cardHomepageMessage': '<b>Group Merge: Mail Merge for Gmail</b>\nオープンソースで利用可能なGmailのための差し込みメール作成用アドオン。同じ宛先への複数行にわたる情報を1通のメールにまとめられる<b>まとめ差し込み（Group Merge）</b>機能付き。\n\n以下の項目を入力して「<b>テスト差込（下書きメール作成）</b>」または「<b>差込み送信（メール送信）</b>」を選択してください。\n別途説明がある項目を除けば<b>すべて必須の入力項目</b>です。',
     'cardRecipientListSettings': '1. 宛先リストの設定',
     'cardEnterSpreadsheetUrl': 'スプレッドシートURL',
     'cardHintSpreadsheetUrl': '宛先リストのスプレッドシートURLを入力',
@@ -106,6 +114,10 @@ const MESSAGES = {
     'cardHintGroupFieldMarker': 'まとめ差し込みフィールドを定義する正規表現。フィールド名そのもの（例：[[ミーティング{{i}}]]の中の「ミーティング{{i}}」という文字列）を検出するためのキャプチャグループ（"( )"）を使用すること。バックスラッシュ（\\）自体はエスケープ不要。',
     'cardEnterRowIndexMarker': 'まとめ差し込み番号マーカー',
     'cardHintRowIndexMarker': 'まとめ差し込みで、同一宛先内の差し込み順序を番号付けするためのマーカー',
+    'cardSwitchEnableDebugMode': 'デバッグモードを有効にする',
+    'cardMessageUnexpectedError': '予期しないエラー：\n',
+    'cardMessageDebugInfo': 'デバッグ情報\n以下のデバッグ情報をどこかにコピー＆ペーストする際は、顧客のメールアドレスなどの機密情報を取り除くよう注意してください：\n\n',
+    'cardMessageSentDebugInfo': '<b>デバッグ情報がメールにてお使いのGoogleアカウントに送信されました。</b>',
     'buttonRestoreUserConfig': '保存した設定を使用',
     'buttonRestoreDefault': '初期設定に戻す',
     'buttonReadDocument': '説明を読む',
@@ -131,7 +143,11 @@ const MESSAGES = {
     'alertConfirmSendingOfDraft': '{{myEmail}}として、作成された下書きメールを送信してもよろしいですか？\n「下書き作成（差込テスト）」によって作成された下書きのみが送信されます。',
     'errorSendDraftsCanceled': '下書きメールの送信がキャンセルされました。',
     'errorNoDraftToSend': '[Mail Merge Error]\n送信する下書きメールが見つかりません。改めて「下書き作成（差込テスト）」を行ってください。',
-    'alertCompleteSavedUserConfig': '完了：ユーザ設定として現在の設定が保存されました。\n\n'
+    'alertCompleteSavedUserConfig': '完了：ユーザ設定として現在の設定が保存されました。\n\n',
+    'appsScriptMessageErrorOnOpenByUrl': 'SpreadsheetApp オブジェクトでの openByUrl メソッドまたはプロパティの取得中に予期しないエラーが発生',
+    'appsScriptMessageNoPermissionErrorStartsWith': 'リクエストされたドキュメントにアクセスする権限がありません。',
+    'proceedingToPostProcess': '現在の処理はGoogle Workspaceアドオンに設けられた{{actionLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの差し込み処理はトリガーによって自動的に実行され、完了は{{myEmail}}宛のメールで通知されます。\n下書きモード：{{draftMode}}\n現在までに完了したメッセージ数：{{messageCount}}',
+    'subjectCompletePostProcess': '[GROUP MERGE] 差し込み処理のお知らせ'
   }
 };
 
@@ -198,6 +214,37 @@ class LocalizedMessage {
   replaceCompleteMessage(draftMode, messageCount) {
     let text = (draftMode ? this.messageList.alertCompleteAllDraftsCreated : this.messageList.alertCompleteAllMailsSent);
     let placeholderValues = [
+      {
+        'regexp': '\{\{messageCount\}\}',
+        'value': messageCount
+      }
+    ];
+    text = this.replacePlaceholders_(text, placeholderValues);
+    return text;
+  }
+  /**
+   * Replace placeholder string in this.messageList.proceedingToPostProcess
+   * @param {number} actionLimitTimeInSec
+   * @param {string} myEmail
+   * @param {boolean} draftMode
+   * @param {number} messageCount Number of emails drafted or sent
+   * @returns {string} The replaced text.
+   */
+  replaceProceedingToPostProcess(actionLimitTimeInSec, myEmail, draftMode, messageCount) {
+    let text = this.messageList.proceedingToPostProcess;
+    let placeholderValues = [
+      {
+        'regexp': '\{\{actionLimitTimeInSec\}\}',
+        'value': actionLimitTimeInSec
+      },
+      {
+        'regexp': '\{\{myEmail\}\}',
+        'value': myEmail
+      },
+      {
+        'regexp': '\{\{draftMode\}\}',
+        'value': draftMode
+      },
       {
         'regexp': '\{\{messageCount\}\}',
         'value': messageCount
