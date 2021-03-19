@@ -358,7 +358,8 @@ function postProcessMailMerge() {
   config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
   var prevProperties = {
     completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
-    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds)
+    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
+    templateDraftId: userPropertiesValues.templateDraftId
   };
   mailMerge(draftMode, config, prevProperties);
 }
@@ -479,105 +480,69 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {
       'rowIndexMarker': config.ROW_INDEX_MARKER
     };
     // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
-    let groupedMergeData = groupArray_(mergeDataEolReplaced, (config.ENABLE_GROUP_MERGE ? Tos[0][1] : null));
+    let mergeDataHeader = mergeDataEolReplaced.shift();
+    let mergeDataKeyIndex = mergeDataHeader.indexOf(Tos[0][1]);
+    if (mergeDataKeyIndex < 0) {
+      // Throw error if there were no column header matching the placeholder value of To
+      throw new Error(localizedMessage.messageList.errorInvalidTo);
+    }
+    let groupedMergeData = mergeDataEolReplaced.reduce((obj, dataRow, rowIndex) => {
+      let key = dataRow[mergeDataKeyIndex];
+      key += (config.ENABLE_GROUP_MERGE ? '' : `_${rowIndex}`);
+      if (!obj[key]) {
+        obj[key] = [];
+      }
+      obj[key].push(mergeDataHeader.reduce((o, k, i) => {
+        o[k] = dataRow[i];
+        return o;
+      }, {}));
+      return obj;
+    }, {});
     debugInfo.processTime.push(`Group Merge is ${(config.ENABLE_GROUP_MERGE ? 'enabled. Grouped recipient list by recipient email address' : 'disabled. Data stored in groupedMergeData')} at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-    if (config.ENABLE_GROUP_MERGE) {
-      // Validity check
-      if (Object.keys(groupedMergeData).length == 0) {
-        throw new Error(localizedMessage.messageList.errorInvalidTo);
+    // Create draft for each recipient and, depending on the value of draftMode, send it.
+    for (let k in groupedMergeData) {
+      if (debugInfo.prevCompletedRecipients.includes(k)) {
+        continue;
       }
-      debugInfo.processTime.push(`Group Merge is enabled. Grouped recipient list by recipient email address at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-      // Create draft for each recipient and, depending on the value of draftMode, send it.
-      for (let k in groupedMergeData) {
-        if (debugInfo.prevCompletedRecipients.includes(k)) {
-          continue;
-        }
-        let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
-        let options = {
-          'htmlBody': (isPlainText ? null : messageData.htmlBody),
-          'from': messageData.from,
-          'cc': messageData.cc,
-          'bcc': messageData.bcc,
-          'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
-        };
-        let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
-        // Add the same Gmail labels as those on the template draft message.
-        let draftThread = draft.getMessage().getThread();
-        messageData.labels.forEach(label => draftThread.addLabel(label));
-        if (!draftMode) {
-          draft.send();
-        } else {
-          // List the created draft ID
-          createdDraftIds.push(draft.getId());
-        }
-        // Determine current process time lapse.
-        // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
-        let timeLapsed = (new Date()).getTime() - debugInfo.start;
-        debugInfo.processTime.push(`Message for ${k} drafted/sent at ${timeLapsed} (millisec from start)`);
-        debugInfo.completedRecipients.push(k);
-        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
-          debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
-          userProperties.setProperties({
-            completedRecipients: JSON.stringify(debugInfo.completedRecipients),
-            createdDraftIds: JSON.stringify(createdDraftIds),
-            draftMode: draftMode
-          }, false);
-          ScriptApp.newTrigger('postProcessMailMerge')
-            .timeBased()
-            .after(EXECUTE_TRIGGER_AFTER)
-            .create();
-          debugInfo.processTime.push(`Saved property and set trigger for post-process at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-          throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
-        }
+      let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
+      let options = {
+        'htmlBody': (isPlainText ? null : messageData.htmlBody),
+        'from': messageData.from,
+        'cc': messageData.cc,
+        'bcc': messageData.bcc,
+        'attachments': (messageData.attachments ? messageData.attachments : null),
+        'inlineImages': (isPlainText ? null : inLineImageBlobs),
+        'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
+      };
+      let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
+      // Add the same Gmail labels as those on the template draft message.
+      let draftThread = draft.getMessage().getThread();
+      messageData.labels.forEach(label => draftThread.addLabel(label));
+      if (!draftMode) {
+        draft.send();
+      } else {
+        // List the created draft ID
+        createdDraftIds.push(draft.getId());
       }
-    } else {
-      debugInfo.processTime.push(`Group Merge is disabled. Proceeding with mail merge at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-      // Create draft or send email for each recipient
-      groupedMergeData.data.forEach(obj => {
-        let messageData = fillInTemplate_(template, [obj], fillInTemplate_options);
-        if (debugInfo.prevCompletedRecipients.includes(messageData.to)) {
-          return;
-        }
-        let options = {
-          'htmlBody': (isPlainText ? null : messageData.htmlBody),
-          'from': messageData.from,
-          'cc': messageData.cc,
-          'bcc': messageData.bcc,
-          'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
-        };
-        let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
-        let draftThread = draft.getMessage().getThread();
-        messageData.labels.forEach(label => draftThread.addLabel(label));
-        if (!draftMode) {
-          draft.send();
-        } else {
-          // List the created draft ID
-          createdDraftIds.push(draft.getId());
-        }
-        // Determine current process time lapse.
-        // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
-        let timeLapsed = (new Date()).getTime() - debugInfo.start;
-        debugInfo.processTime.push(`Message for ${messageData.to} drafted/sent at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
-        debugInfo.completedRecipients.push(messageData.to);
-        if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
-          debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
-          userProperties.setProperties({
-            completedRecipients: JSON.stringify(debugInfo.completedRecipients),
-            createdDraftIds: JSON.stringify(createdDraftIds),
-            draftMode: draftMode
-          }, false);
-          ScriptApp.newTrigger('postProcessMailMerge')
-            .timeBased()
-            .after(EXECUTE_TRIGGER_AFTER)
-            .create();
-          debugInfo.processTime.push(`Saved property and set trigger for post-process at ${timeLapsed} (millisec from start)`);
-          throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
-        }
-      });
+      // Determine current process time lapse.
+      // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
+      let timeLapsed = (new Date()).getTime() - debugInfo.start;
+      debugInfo.processTime.push(`Message for ${k} drafted/sent at ${timeLapsed} (millisec from start)`);
+      debugInfo.completedRecipients.push(k);
+      if (ACTION_LIMIT_TIME - timeLapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
+        debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+        userProperties.setProperties({
+          completedRecipients: JSON.stringify(debugInfo.completedRecipients),
+          createdDraftIds: JSON.stringify(createdDraftIds),
+          draftMode: draftMode
+        }, false);
+        ScriptApp.newTrigger('postProcessMailMerge')
+          .timeBased()
+          .after(EXECUTE_TRIGGER_AFTER)
+          .create();
+        debugInfo.processTime.push(`Saved property and set trigger for post-process at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
+        throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
+      }
     }
     // Notification
     debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
@@ -652,43 +617,6 @@ function parseConfig_(eventObj) {
   configObj['hostApp'] = eventObj.commonEventObject.hostApp;
   configObj['userLocale'] = eventObj.commonEventObject.userLocale;
   return configObj;
-}
-
-/**
- * Create a Javascript object from a 2d array, grouped by a given property.
- * @param {array} data 2-dimensional array with a header as its first row.
- * @param {string} property [Optional] Name of field name in header to group by.
- * When property is not specified, this function will return an object with a key 'data', whose value is a simple array of objects converted from the given 2d array.
- * If the designated property is not included in the header, this function will return an empty object.
- * @return {object}
- */
-function groupArray_(data, property = null) {
-  let header = data.shift();
-  let index = header.indexOf(property);
-  if (property == null) {
-    let groupedObj = {};
-    groupedObj['data'] = data.map(values => header.reduce((o, k, i) => {
-      o[k] = values[i];
-      return o;
-    }, {}));
-    return groupedObj;
-  } else if (index < 0) {
-    return {};
-  } else {
-    let groupedObj = data.reduce((accObj, curArr) => {
-      let key = curArr[index];
-      if (!accObj[key]) {
-        accObj[key] = [];
-      }
-      let rowObj = header.reduce((o, k, i) => {
-        o[k] = curArr[i];
-        return o;
-      }, {});
-      accObj[key].push(rowObj);
-      return accObj;
-    }, {});
-    return groupedObj;
-  }
 }
 
 /**
