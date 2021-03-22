@@ -15,7 +15,7 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported buildHomepage, buildHomepageRestoreUserConfig, buildHomepageRestoreDefault, saveUserConfig, createDraftEmails, sendDrafts, sendEmails */
+/* exported buildHomepage, buildHomepageRestoreDefault, buildHomepageRestoreUserConfig, createDraftEmails, postProcessMailMerge, saveUserConfig, sendDrafts, sendEmails */
 
 //////////////////////
 // Global Variables //
@@ -23,24 +23,31 @@
 
 // Default configurations
 const DEFAULT_CONFIG = {
-  SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/*****/edit',
-  DATA_SHEET_NAME: 'List',
-  RECIPIENT_COL_NAME: 'Email',
-  TEMPLATE_SUBJECT: 'Enter subject here...',
-  REPLACE_VALUE: 'NA',
-  MERGE_FIELD_MARKER_TEXT: '\\{\\{[^\\}]+\\}\\}',
-  MERGE_FIELD_MARKER: /\{\{[^\}]+\}\}/g, // to be deprecated
-  ENABLE_GROUP_MERGE: true,
-  GROUP_FIELD_MARKER_TEXT: '\\[\\[[^\\]]+\\]\\]',
-  GROUP_FIELD_MARKER: /\[\[[^\]]+\]\]/g, // to be deprecated
-  ROW_INDEX_MARKER: '{{i}}',
-  ENABLE_REPLY_TO: false,
-  REPLY_TO: 'replyTo@email.com'
+  'SPREADSHEET_URL': 'https://docs.google.com/spreadsheets/d/*****/edit',
+  'DATA_SHEET_NAME': 'sheetName',
+  'TO': '{{Email}}',
+  'CC': '',
+  'BCC': '',
+  'TEMPLATE_SUBJECT': 'Enter subject here...',
+  'REPLACE_VALUE': 'NA',
+  'MERGE_FIELD_MARKER_TEXT': '\\{\\{([^\\}]+)\\}\\}',
+  'MERGE_FIELD_MARKER': /\{\{([^\}]+)\}\}/g, // deprecated
+  'ENABLE_GROUP_MERGE': true,
+  'GROUP_FIELD_MARKER_TEXT': '\\[\\[([^\\]]+)\\]\\]',
+  'GROUP_FIELD_MARKER': /\[\[([^\]]+)\]\]/g, // deprecated
+  'ROW_INDEX_MARKER': '{{i}}',
+  'ENABLE_REPLY_TO': false,
+  'REPLY_TO': 'replyTo@email.com',
+  'ENABLE_DEBUG_MODE': false
 };
 // Key(s) for storing and calling settings stored as user property
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
+// Key lengths in milliseconds regarding time limit of add-on card actions.
+const ACTION_LIMIT_TIME = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger.
+const EXECUTE_TRIGGER_AFTER = 5 * 1000; // Milliseconds after which the mail merge process will resume by a scheduled trigger.
 
 //////////////////////////
 // Add-on Card Builders //
@@ -98,7 +105,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
   // Message Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newTextParagraph()
-      .setText(localizedMessage.messageList.cardMessage))
+      .setText(localizedMessage.messageList.cardHomepageMessage))
     .addWidget(CardService.newButtonSet()
       .addButton(CardService.newTextButton()
         .setText(localizedMessage.messageList.buttonSendDrafts)
@@ -119,10 +126,20 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .setHint(localizedMessage.messageList.cardHintSheetName)
       .setValue(config.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME))
     .addWidget(CardService.newTextInput()
-      .setFieldName('RECIPIENT_COL_NAME')
-      .setTitle(localizedMessage.messageList.cardEnterRecipientColName)
-      .setHint(localizedMessage.messageList.cardHintRecipientColName)
-      .setValue(config.RECIPIENT_COL_NAME || DEFAULT_CONFIG.RECIPIENT_COL_NAME)));
+      .setFieldName('TO')
+      .setTitle(localizedMessage.messageList.cardEnterTo)
+      .setHint(localizedMessage.messageList.cardHintTo)
+      .setValue(config.TO || DEFAULT_CONFIG.TO))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('CC')
+      .setTitle(localizedMessage.messageList.cardEnterCc)
+      .setHint(localizedMessage.messageList.cardHintCc)
+      .setValue(config.CC || DEFAULT_CONFIG.CC))
+    .addWidget(CardService.newTextInput()
+      .setFieldName('BCC')
+      .setTitle(localizedMessage.messageList.cardEnterBcc)
+      .setHint(localizedMessage.messageList.cardHintBcc)
+      .setValue(config.BCC || DEFAULT_CONFIG.BCC)));
   // Template Draft Section
   builder.addSection(CardService.newCardSection()
     .setHeader(localizedMessage.messageList.cardTemplateDraftSettings)
@@ -171,7 +188,13 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .setFieldName('ROW_INDEX_MARKER')
       .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
       .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
-      .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)));
+      .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER))
+    .addWidget(CardService.newDecoratedText()
+      .setText(localizedMessage.messageList.cardSwitchEnableDebugMode)
+      .setSwitchControl(CardService.newSwitch()
+        .setSelected(typeof config.ENABLE_DEBUG_MODE == 'boolean' ? config.ENABLE_DEBUG_MODE : DEFAULT_CONFIG.ENABLE_DEBUG_MODE)
+        .setFieldName('ENABLE_DEBUG_MODE')
+        .setValue('enabled'))));
   // Buttons Section
   builder.addSection(CardService.newCardSection()
     .addWidget(CardService.newButtonSet()
@@ -188,7 +211,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
       .addButton(CardService.newTextButton()
         .setText(localizedMessage.messageList.buttonReadDocument)
         .setOpenLink(CardService.newOpenLink()
-          .setUrl('https://www.scriptable-assets.page/add-ons/group-merge/')))
+          .setUrl(localizedMessage.messageList.buttonReadDocumentUrl)))
       /*
       .addButton(CardService.newTextButton()
         .setText('test')
@@ -234,9 +257,9 @@ function createMessageCard(message, userLocale) {
   return builder.build();
 }
 
-//////////////////////////
+////////////////////////
 // Mail Merge Actions //
-//////////////////////////
+////////////////////////
 
 function saveUserConfig(event) {
   var config = parseConfig_(event);
@@ -245,8 +268,10 @@ function saveUserConfig(event) {
   // Construct complete message
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
-  for (let k in config) {
-    cardMessage += `<b>${k}: ${config[k]}\n`;
+  if (config.ENABLE_DEBUG_MODE) {
+    for (let k in config) {
+      cardMessage += `<b>${k}: ${config[k]}\n`;
+    }
   }
   return createMessageCard(cardMessage, config.userLocale);
 }
@@ -265,6 +290,7 @@ function createDraftEmails(event) {
  */
 function sendDrafts(event) {
   const config = parseConfig_(event);
+  var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var userProperties = PropertiesService.getUserProperties();
   var cardMessage = '';
@@ -273,7 +299,7 @@ function sendDrafts(event) {
     if (config.hostApp == 'SHEETS') {
       // Confirmation before sending email
       var ui = SpreadsheetApp.getUi();
-      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(Session.getActiveUser().getEmail());
+      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(myEmail);
       let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
@@ -304,10 +330,8 @@ function sendDrafts(event) {
     }
     if (knownErrorMessages.includes(error.message)) {
       cardMessage = error.message;
-    } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
-      cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
-      cardMessage = 'Unexpected Error:\n' + error.stack;
+      cardMessage = localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
   }
   return createMessageCard(cardMessage, config.userLocale);
@@ -323,27 +347,55 @@ function sendEmails(event) {
 }
 
 /**
+ * Post-process for mailMerge(); continues the process of mail merge
+ * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
+ */
+function postProcessMailMerge() {
+  var userPropertiesValues = PropertiesService.getUserProperties().getProperties();
+  var draftMode = (userPropertiesValues['draftMode'] === 'true');
+  var config = JSON.parse(userPropertiesValues[UP_KEY_PREV_CONFIG]);
+  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
+  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
+  var prevProperties = {
+    'completedRecipients': JSON.parse(userPropertiesValues.completedRecipients),
+    'createdDraftIds': JSON.parse(userPropertiesValues.createdDraftIds),
+    'templateDraftIds': JSON.parse(userPropertiesValues.templateDraftIds)
+  };
+  mailMerge(draftMode, config, prevProperties);
+}
+
+/**
  * Bulk send personalized emails based on a designated Gmail draft.
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by parseConfig_(eventObj)
- * @returns {string} 
+ * @return {string} Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
  */
-function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
+function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {}) {
+  var isPostProcess = (Object.keys(prevProperties).length > 0);
+  var debugInfo = {
+    'completedRecipients': [],
+    'config': config,
+    'draftMode': draftMode,
+    'prevCompletedRecipients': (isPostProcess ? prevProperties.completedRecipients : []),
+    'processTime': [],
+    'start': (new Date()).getTime()
+  };
+  var myEmail = Session.getActiveUser().getEmail();
   var localizedMessage = new LocalizedMessage(config.userLocale);
   var cardMessage = '';
-  var messageCount = 0;
+  var templateDraftIds = (isPostProcess ? prevProperties.templateDraftIds : []);
   // Reset list of created drafts
-  var createdDraftIds = [];
-  var userProperties = PropertiesService.getUserProperties().setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
+  var createdDraftIds = (isPostProcess ? prevProperties.createdDraftIds : []);
   // Save current settings in user property
+  var userProperties = PropertiesService.getUserProperties();
   userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
   // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
-  var noPlaceholder = ['ccTo', 'bccTo', 'from', 'attachments', 'inLineImages', 'labels'];
-  if (config.hostApp == 'SHEETS') {
+  var noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
+  if (config.hostApp == 'SHEETS' && !isPostProcess) {
     var ui = SpreadsheetApp.getUi();
   }
   try {
-    var ss = SpreadsheetApp.openByUrl(config.SPREADSHEET_URL);
+    let ss = SpreadsheetApp.openByUrl(config.SPREADSHEET_URL);
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
     if (dataSheet == null) {
@@ -353,20 +405,43 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map(element => element.map(value => value.replace(/\n|\r|\r\n/g, '\r\n')));
-    if (config.hostApp == 'SHEETS') {
+    debugInfo.processTime.push(`Retrieved recipient list data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
+    if (config.hostApp == 'SHEETS' && !isPostProcess) {
       // Confirmation before sending email
-      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, Session.getActiveUser().getEmail());
+      let confirmAccount = localizedMessage.replaceConfirmAccount(draftMode, myEmail);
       let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorMailMergeCanceled);
       }
+      debugInfo.processTime.push(`Passed UI confirmation on SHEETS at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     }
-    // Get template from Gmail draft
+    // Verify value of TO
+    var Tos = [...config.TO.matchAll(config.MERGE_FIELD_MARKER)];
+    if (config.TO == null || config.TO == '') {
+      throw new Error(localizedMessage.messageList.errorNoToEntered);
+    } else if (Tos.length > 1) {
+      throw new Error(localizedMessage.messageList.errorMultipleToEntered);
+    }
+    // Verify value of TEMPLATE_SUBJECT
     if (config.TEMPLATE_SUBJECT == null || config.TEMPLATE_SUBJECT == '') {
-      throw new Error(localizedMessage.message.errorNoTextEntered);
+      throw new Error(localizedMessage.messageList.errorNoSubjectTextEntered);
     }
-    // Get an array of GmailMessage class objects whose subject matches config.TEMPLATE_SUBJECT.
-    let draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == config.TEMPLATE_SUBJECT);
+    // Get an array of GmailMessage class objects whose subject matches config.TEMPLATE_SUBJECT
+    // or if templateDraftIds is not empty, directly retrieve the GmailMessage object by its draft ID.
+    let draftMessages = [];
+    if (templateDraftIds.length > 0) {
+      draftMessages = templateDraftIds.map(draftId => GmailApp.getDraft(draftId).getMessage());
+    } else {
+      // draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == config.TEMPLATE_SUBJECT);
+      draftMessages = GmailApp.getDrafts().reduce((messages, draft) => {
+        let message = draft.getMessage();
+        if (message.getSubject() === config.TEMPLATE_SUBJECT) {
+          messages.push(message);
+          templateDraftIds.push(draft.getId());
+        }
+        return messages;
+      }, []);
+    }
     // Check for duplicates
     if (draftMessages.length > 1) {
       throw new Error(localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject);
@@ -376,18 +451,23 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       throw new Error(localizedMessage.messageList.errorNoMatchingTemplateDraft);
     }
     // Store template into an object
+    let messageTo = draftMessages[0].getTo();
+    let messageCc = draftMessages[0].getCc();
+    let messageBcc = draftMessages[0].getBcc();
     let template = {
       'subject': config.TEMPLATE_SUBJECT,
       'plainBody': draftMessages[0].getPlainBody(),
       'htmlBody': draftMessages[0].getBody(),
       'from': draftMessages[0].getFrom(),
-      'ccTo': draftMessages[0].getCc(),
-      'bccTo': draftMessages[0].getBcc(),
+      'to': config.TO + (messageTo ? `,${messageTo}` : ''),
+      'cc': config.CC + (messageCc ? `,${messageCc}` : ''),
+      'bcc': config.BCC + (messageBcc ? `,${messageBcc}` : ''),
       'attachments': draftMessages[0].getAttachments({ 'includeInlineImages': false, 'includeAttachments': true }),
       'inLineImages': draftMessages[0].getAttachments({ 'includeInlineImages': true, 'includeAttachments': false }),
       'labels': draftMessages[0].getThread().getLabels(),
       'replyTo': (config.ENABLE_REPLY_TO ? config.REPLY_TO : '')
     };
+    debugInfo.processTime.push(`Retrieved template draft data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
     let inLineImageBlobs = {};
@@ -401,87 +481,86 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
         obj[cid] = blob;
         return obj;
       }, {});
+      debugInfo.processTime.push(`Template is composed in HTML. Retrieved ${template.inLineImages.length} in-line image data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     }
-    // Create draft or send email based on the template.
-    // The process depends on the value of ENABLE_GROUP_MERGE
-    if (config.ENABLE_GROUP_MERGE) {
-      // Convert the 2d-array merge data into object grouped by recipient(s)
-      let groupedMergeData = groupArray_(mergeDataEolReplaced, config.RECIPIENT_COL_NAME);
-      // Validity check
-      if (Object.keys(groupedMergeData).length == 0) {
-        throw new Error(localizedMessage.messageList.errorInvalidRECIPIENT_COL_NAME);
+    // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
+    let mergeDataHeader = mergeDataEolReplaced.shift();
+    let mergeDataKeyIndex = mergeDataHeader.indexOf(Tos[0][1]);
+    if (mergeDataKeyIndex < 0) {
+      // Throw error if there were no column header matching the placeholder value of To
+      throw new Error(localizedMessage.messageList.errorInvalidTo);
+    }
+    let groupedMergeData = mergeDataEolReplaced.reduce((obj, dataRow, rowIndex) => {
+      let key = dataRow[mergeDataKeyIndex];
+      key += (config.ENABLE_GROUP_MERGE ? '' : `_${rowIndex}`);
+      if (!obj[key]) {
+        obj[key] = [];
       }
-      // Create draft for each recipient and, depending on the value of draftMode, send it.
-      for (let k in groupedMergeData) {
-        let mergeDataObjArr = groupedMergeData[k];
-        let fillInTemplate_options = {
-          'excludeFromTemplate': noPlaceholder,
-          'asHtml': ['htmlBody'],
-          'replaceValue': config.REPLACE_VALUE,
-          'mergeFieldMarker': config.MERGE_FIELD_MARKER,
-          'enableGroupMerge': config.ENABLE_GROUP_MERGE,
-          'groupFieldMarker': config.GROUP_FIELD_MARKER,
-          'rowIndexMarker': config.ROW_INDEX_MARKER
-        };
-        let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
-        let options = {
-          'htmlBody': (isPlainText ? null : messageData.htmlBody),
-          'from': messageData.from,
-          'cc': messageData.ccTo,
-          'bcc': messageData.bccTo,
-          'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
-        };
-        let draft = GmailApp.createDraft(k, messageData.subject, messageData.plainBody, options);
-        // Add the same Gmail labels as those on the template draft message.
-        let draftThread = draft.getMessage().getThread();
-        messageData.labels.forEach(label => draftThread.addLabel(label));
-        if (!draftMode) {
-          draft.send();
-        } else {
-          // List the created draft ID
-          createdDraftIds.push(draft.getId());
-        }
-        messageCount += 1;
+      obj[key].push(mergeDataHeader.reduce((o, k, i) => {
+        o[k] = dataRow[i];
+        return o;
+      }, {}));
+      return obj;
+    }, {});
+    debugInfo.processTime.push(`Group Merge is ${(config.ENABLE_GROUP_MERGE ? 'enabled. Grouped recipient list by recipient email address' : 'disabled. Data stored in groupedMergeData')} at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);    // Create draft or send email based on the template.
+    let fillInTemplate_options = {
+      'excludeFromTemplate': noPlaceholder,
+      'asHtml': [(isPlainText ? '' : 'htmlBody')],
+      'replaceValue': config.REPLACE_VALUE,
+      'mergeFieldMarker': config.MERGE_FIELD_MARKER,
+      'enableGroupMerge': config.ENABLE_GROUP_MERGE,
+      'groupFieldMarker': config.GROUP_FIELD_MARKER,
+      'rowIndexMarker': config.ROW_INDEX_MARKER
+    };
+    // Create draft for each recipient and, depending on the value of draftMode, send it.
+    for (let k in groupedMergeData) {
+      if (debugInfo.prevCompletedRecipients.includes(k)) {
+        continue;
       }
-    } else {
-      // Convert the 2d-array merge data into object
-      let groupedMergeData = groupArray_(mergeDataEolReplaced);
-      // Create draft or send email for each recipient
-      groupedMergeData.data.forEach(obj => {
-        let mergeDataObjArr = [obj];
-        let fillInTemplate_options = {
-          'excludeFromTemplate': noPlaceholder,
-          'asHtml': ['htmlBody'],
-          'replaceValue': config.REPLACE_VALUE,
-          'mergeFieldMarker': config.MERGE_FIELD_MARKER,
-          'enableGroupMerge': config.ENABLE_GROUP_MERGE
-        };
-        let messageData = fillInTemplate_(template, mergeDataObjArr, fillInTemplate_options);
-        let options = {
-          'htmlBody': (isPlainText ? null : messageData.htmlBody),
-          'from': messageData.from,
-          'cc': messageData.ccTo,
-          'bcc': messageData.bccTo,
-          'attachments': (messageData.attachments ? messageData.attachments : null),
-          'inlineImages': (isPlainText ? null : inLineImageBlobs),
-          'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
-        };
-        let draft = GmailApp.createDraft(obj[config.RECIPIENT_COL_NAME], messageData.subject, messageData.plainBody, options);
-        let draftThread = draft.getMessage().getThread();
-        messageData.labels.forEach(label => draftThread.addLabel(label));
-        if (!draftMode) {
-          draft.send();
-        } else {
-          // List the created draft ID
-          createdDraftIds.push(draft.getId());
-        }
-        messageCount += 1;
-      });
+      let messageData = fillInTemplate_(template, groupedMergeData[k], fillInTemplate_options);
+      let options = {
+        'htmlBody': (isPlainText ? null : messageData.htmlBody),
+        'from': messageData.from,
+        'cc': messageData.cc,
+        'bcc': messageData.bcc,
+        'attachments': (messageData.attachments ? messageData.attachments : null),
+        'inlineImages': (isPlainText ? null : inLineImageBlobs),
+        'replyTo': (config.ENABLE_REPLY_TO ? messageData.replyTo : null)
+      };
+      let draft = GmailApp.createDraft(messageData.to, messageData.subject, messageData.plainBody, options);
+      // Add the same Gmail labels as those on the template draft message.
+      let draftThread = draft.getMessage().getThread();
+      messageData.labels.forEach(label => draftThread.addLabel(label));
+      if (!draftMode) {
+        draft.send();
+      } else {
+        // List the created draft ID
+        createdDraftIds.push(draft.getId());
+      }
+      // Determine current process time lapse.
+      // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
+      let timeElapsed = (new Date()).getTime() - debugInfo.start;
+      debugInfo.processTime.push(`Message for ${k} drafted/sent at ${timeElapsed} (millisec from start)`);
+      debugInfo.completedRecipients.push(k);
+      if (ACTION_LIMIT_TIME - timeElapsed < ACTION_LIMIT_TIME_OFFSET && !isPostProcess) {
+        debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+        userProperties.setProperties({
+          'completedRecipients': JSON.stringify(debugInfo.completedRecipients),
+          'createdDraftIds': JSON.stringify(createdDraftIds),
+          'draftMode': draftMode,
+          'templateDraftIds': JSON.stringify(templateDraftIds)
+        }, false);
+        ScriptApp.newTrigger('postProcessMailMerge')
+          .timeBased()
+          .after(EXECUTE_TRIGGER_AFTER)
+          .create();
+        debugInfo.processTime.push(`Saved property and set trigger for post-process at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
+        throw new Error(localizedMessage.replaceProceedingToPostProcess(ACTION_LIMIT_TIME / 1000, myEmail, draftMode, debugInfo.completedRecipients.length));
+      }
     }
     // Notification
-    cardMessage = localizedMessage.replaceCompleteMessage(draftMode, messageCount);
+    debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(debugInfo.completedRecipients);
+    cardMessage = localizedMessage.replaceCompleteMessage(draftMode, debugInfo.completedRecipients.length);
   } catch (error) {
     let knownErrorMessages = [];
     for (let k in localizedMessage.messageList) {
@@ -490,29 +569,41 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG) {
       }
       knownErrorMessages.push(localizedMessage.messageList[k]);
     }
-    if (knownErrorMessages.includes(error.message)) {
+    if (knownErrorMessages.includes(error.message) || error.message.startsWith(localizedMessage.messageList.proceedingToPostProcess.slice(0, 10))) {
       cardMessage = error.message;
-    } else if (error.message.startsWith('Unexpected error while getting the method or property openByUrl') || error.message.startsWith('You do not have permission to access the requested document.')) {
+    } else if (error.message.startsWith(localizedMessage.messageList.appsScriptMessageErrorOnOpenByUrl) || error.message.startsWith(localizedMessage.messageList.appsScriptMessageNoPermissionErrorStartsWith)) {
       cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
     } else {
-      cardMessage = 'Unexpected Error:\n' + error.stack;
-      console.error(cardMessage);
+      cardMessage = localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
   }
   userProperties.setProperty(UP_KEY_CREATED_DRAFT_IDS, JSON.stringify(createdDraftIds));
+  if (config.ENABLE_DEBUG_MODE) {
+    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
+    for (let k in debugInfo) {
+      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
+    }
+    MailApp.sendEmail(myEmail, `[GROUP MERGE] Debug Info`, `${cardMessage}\n\n${debugInfoText}`);
+    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
+  }
+  if (isPostProcess) {
+    MailApp.sendEmail(myEmail, localizedMessage.messageList.subjectPostProcessUpdate, cardMessage);
+  }
   return cardMessage;
 }
 
 /**
  * Retrieve configuration values for mail merge from the input values of the Card widget interactions.
  * @param {Object} eventObj Add-on event object. https://developers.google.com/workspace/add-ons/concepts/event-objects
- * @returns {Object}
+ * @return {Object}
  */
 function parseConfig_(eventObj) {
   var targetSettings = [ // A complete list of the form input items in createMailMergeCard
     'SPREADSHEET_URL',
     'DATA_SHEET_NAME',
-    'RECIPIENT_COL_NAME',
+    'TO',
+    'CC',
+    'BCC',
     'TEMPLATE_SUBJECT',
     'ENABLE_GROUP_MERGE',
     'ENABLE_REPLY_TO',
@@ -520,16 +611,18 @@ function parseConfig_(eventObj) {
     'REPLACE_VALUE',
     'MERGE_FIELD_MARKER_TEXT',
     'GROUP_FIELD_MARKER_TEXT',
-    'ROW_INDEX_MARKER'
+    'ROW_INDEX_MARKER',
+    'ENABLE_DEBUG_MODE'
   ];
   let configObj = targetSettings.reduce((config, item) => {
     let input = eventObj.commonEventObject.formInputs[item] || { 'stringInputs': { 'value': [''] } };
     let value = input.stringInputs.value[0];
-    if (item == 'ENABLE_GROUP_MERGE' || item == 'ENABLE_REPLY_TO') {
+    if (item == 'ENABLE_GROUP_MERGE' || item == 'ENABLE_REPLY_TO' || item == 'ENABLE_DEBUG_MODE') {
       value = (value == 'enabled' || value == 'true');
     } else if (item == 'MERGE_FIELD_MARKER_TEXT' || item == 'GROUP_FIELD_MARKER_TEXT') {
-      item = item.replace('_TEXT', '');
-      value = new RegExp(value, 'g');
+      let itemRegexp = item.replace('_TEXT', '');
+      let valueRegexp = new RegExp(value, 'g');
+      config[itemRegexp] = valueRegexp;
     }
     config[item] = value;
     return config;
@@ -541,54 +634,17 @@ function parseConfig_(eventObj) {
 }
 
 /**
- * Create a Javascript object from a 2d array, grouped by a given property.
- * @param {array} data 2-dimensional array with a header as its first row.
- * @param {string} property [Optional] Name of field name in header to group by.
- * When property is not specified, this function will return an object with a key 'data', whose value is a simple array of objects converted from the given 2d array.
- * If the designated property is not included in the header, this function will return an empty object.
- * @return {object}
- */
-function groupArray_(data, property = null) {
-  let header = data.shift();
-  let index = header.indexOf(property);
-  if (property == null) {
-    let groupedObj = {};
-    groupedObj['data'] = data.map(values => header.reduce((o, k, i) => {
-      o[k] = values[i];
-      return o;
-    }, {}));
-    return groupedObj;
-  } else if (index < 0) {
-    return {};
-  } else {
-    let groupedObj = data.reduce((accObj, curArr) => {
-      let key = curArr[index];
-      if (!accObj[key]) {
-        accObj[key] = [];
-      }
-      let rowObj = header.reduce((o, k, i) => {
-        o[k] = curArr[i];
-        return o;
-      }, {});
-      accObj[key].push(rowObj);
-      return accObj;
-    }, {});
-    return groupedObj;
-  }
-}
-
-/**
  * Replaces markers in a template object with values defined in a JavaScript data object.
  * @param {Object} template Template object containing markers, as designated in regular expression in mergeFieldMarker
  * @param {array} data Array of object(s) with values to replace markers.
- * @param {Object} options [Optional] Options, as described below.
+ * @param {Object} options [Optional] Options, as described below. Defaults to the respective values in DEFAULT_CONFIG
  * @param {array} options.excludeFromTemplate [Optional] Array of the keys in template to exclude from the replacement process, in strings. 
  * @param {array} option.asHtml [Optional] Array of the keys in template to regard as HTML formatted.
- * @param {string} options.replaceValue [Optional] String to replace empty data of a marker. Defaults to 'NA' for Not Available. 
- * @param {RegExp} options.mergeFieldMarker [Optional] Regular expression for the merge field marker. Defaults to /\{\{[^\}]+\}\}/g e.g., {{field name}}
- * @param {boolean} options.enableGroupMerge [Optional] Merged texts are returned in concatenated form when true. Defaults to false.
- * @param {RegExp} options.groupFieldMarker [Optional] Regular expression for the group merge field marker. Defaults to /\[\[[^\]]+\]\]/g e.g., [[group merge]]
- * @param {string} options.rowIndexMarker [Optional] Marker for merging row index number in a group merge. Defaults to '{{i}}'
+ * @param {string} options.replaceValue [Optional] String to replace empty data of a marker.
+ * @param {RegExp} options.mergeFieldMarker [Optional] Regular expression for the merge field marker.
+ * @param {boolean} options.enableGroupMerge [Optional] Merged texts are returned in concatenated form when true.
+ * @param {RegExp} options.groupFieldMarker [Optional] Regular expression for the group merge field marker.
+ * @param {string} options.rowIndexMarker [Optional] Marker for merging row index number in a group merge.
  * @return {Object} Returns the template object with markers replaced for personalized text.
  */
 function fillInTemplate_(template, data, options) {
@@ -624,28 +680,23 @@ function fillInTemplate_(template, data, options) {
     // Group merge
     if (options.enableGroupMerge) {
       // Create an array of group field marker(s) in the text
-      let groupTexts = text.match(options.groupFieldMarker);
+      let groupTexts = [...text.matchAll(options.groupFieldMarker)];
       // If the number of group field marker is not 0...
-      if (groupTexts !== null) {
-        let groupTextsMerged = groupTexts.map((field) => {
-          // Get the text inside group field markers, e.g., [[group field]] => group field
-          field = field.substring(2, field.length - 2); // assuming that the text length for opening and closing markers are 2 and 2, respectively
+      if (groupTexts.length) {
+        let groupTextsMerged = groupTexts.map(groupMergeField => {
           // Create an array of merge field markers within a group merge marker
-          let fieldVars = field.match(options.mergeFieldMarker);
-          if (!fieldVars) {
-            return field; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
+          let fieldVars = [...groupMergeField[1].matchAll(options.mergeFieldMarker)];
+          if (!fieldVars.length) {
+            return groupMergeField; // return the text of group merge field itself if no merge field marker is found within the group merge marker.
           } else {
             let fieldMerged = [];
             data.forEach((datum, i) => {
               let rowIndex = i + 1;
-              let fieldRowIndexed = field.replace(options.rowIndexMarker, rowIndex);
-              let fieldVarsCopy = fieldVars.slice();
-              // Get the text inside markers, e.g., {{field name}} => field name
-              let fieldMarkerText = fieldVarsCopy.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively 
-              fieldVarsCopy.forEach((variable, ind) => {
-                let replaceValue = datum[fieldMarkerText[ind]] || options.replaceValue;
+              let fieldRowIndexed = groupMergeField[1].replace(options.rowIndexMarker, rowIndex);
+              fieldVars.forEach((variable, ind) => {
+                let replaceValue = datum[fieldVars[ind][1]] || options.replaceValue;
                 replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-                fieldRowIndexed = fieldRowIndexed.replace(variable, replaceValue);
+                fieldRowIndexed = fieldRowIndexed.replace(variable[0], replaceValue);
               });
               fieldMerged.push(fieldRowIndexed);
             });
@@ -653,24 +704,22 @@ function fillInTemplate_(template, data, options) {
             return fieldMergedText;
           }
         });
-        groupTexts.forEach((groupField, index) => text = text.replace(groupField, groupTextsMerged[index] || options.replaceValue));
+        groupTexts.forEach((groupField, index) => text = text.replace(groupField[0], groupTextsMerged[index] || options.replaceValue));
       }
     }
     // merging the rest of the field based on the first row of data object array.
     let mergeData = data[0];
     // Create an array of all merge fields to be replaced
-    let textVars = text.match(options.mergeFieldMarker);
-    if (!textVars) {
+    let textVars = [...text.matchAll(options.mergeFieldMarker)];
+    if (!textVars.length) {
       messageData[k] = text; // return text itself if no marker is found
     } else {
-      // Get the text inside markers, e.g., {{field name}} => field name 
-      let markerText = textVars.map(value => value.substring(2, value.length - 2)); // assuming that the text length for opening and closing markers are 2 and 2, respectively
       // Replace variables in textVars with the actual values from the data object.
       // If no value is available, replace with replaceValue.
       textVars.forEach((variable, ind) => {
-        let replaceValue = mergeData[markerText[ind]] || options.replaceValue;
+        let replaceValue = mergeData[textVars[ind][1]] || options.replaceValue;
         replaceValue = (options.asHtml.includes(k) ? replaceValue.replace(/\r\n/g, '<br>') : replaceValue);
-        text = text.replace(variable, replaceValue);
+        text = text.replace(variable[0], replaceValue);
       });
       messageData[k] = text;
     }
