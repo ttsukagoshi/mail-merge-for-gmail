@@ -312,9 +312,11 @@ function sendDrafts(event) {
       throw new Error(localizedMessage.messageList.errorNoDraftToSend);
     }
     // Send emails
-    createdDraftIds.forEach(draftId => {
-      GmailApp.getDraft(draftId).send();
-      messageCount += 1;
+    GmailApp.getDrafts().forEach(draft => {
+      if (createdDraftIds.includes(draft.getId())) {
+        draft.send();
+        messageCount += 1;
+      }
     });
     // Empty createdDraftIds
     createdDraftIds = [];
