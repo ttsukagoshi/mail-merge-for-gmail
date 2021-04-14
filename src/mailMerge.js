@@ -453,9 +453,7 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {
       throw new Error(localizedMessage.messageList.errorNoMatchingTemplateDraft);
     }
     // Store template into an object
-    let messageTo = draftMessages[0].getTo();
-    let messageCc = draftMessages[0].getCc();
-    let messageBcc = draftMessages[0].getBcc();
+    let [messageTo, messageCc, messageBcc] = [draftMessages[0].getTo(), draftMessages[0].getCc(), draftMessages[0].getBcc()];
     let template = {
       'subject': config.TEMPLATE_SUBJECT,
       'plainBody': draftMessages[0].getPlainBody(),
@@ -469,6 +467,9 @@ function mailMerge(draftMode = true, config = DEFAULT_CONFIG, prevProperties = {
       'labels': draftMessages[0].getThread().getLabels(),
       'replyTo': (config.ENABLE_REPLY_TO ? config.REPLY_TO : '')
     };
+    template.to = (template.to.slice(0, 1) === ',' ? template.to.slice(1) : template.to);
+    template.cc = (template.cc.slice(0, 1) === ',' ? template.cc.slice(1) : template.cc);
+    template.bcc = (template.bcc.slice(0, 1) === ',' ? template.bcc.slice(1) : template.bcc);
     debugInfo.processTime.push(`Retrieved template draft data at ${(new Date()).getTime() - debugInfo.start} (millisec from start)`);
     // Check template format; plain or HTML text.
     let isPlainText = (template.plainBody === template.htmlBody);
