@@ -2,6 +2,9 @@
 [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 Send personalized emails based on Gmail template to multiple recipients using Google Sheets and Google Apps Script. The **Group Merge** feature, which allows the sender to group the contents of two or more rows into one row for a single recipient, is available.
 
+> **This is a Legacy Version**  
+> This latest version of the v1 series, a legacy version preceding the current Google Workspace Add-on versions, is no longer maintained. For latest information on the add-on, see [this repository's top page](https://github.com/ttsukagoshi/mail-merge-for-gmail).
+
 ## Overview
 Similar to [the mail merge feature available in Microsoft Word](https://support.office.com/en-us/article/use-mail-merge-for-bulk-email-letters-labels-and-envelopes-f488ed5b-b849-4c11-9cff-932c49474705), this Mail Merge for Gmail allows Gmail/Google Workspace users to send personalized emails to the recipients listed in the spreadsheet. Some notable features are:  
 - Use Gmail drafts as template for mail merge. HTML styling and file attachments are preserved in the personalized emails.

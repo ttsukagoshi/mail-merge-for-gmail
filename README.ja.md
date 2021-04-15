@@ -2,6 +2,9 @@
 [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 GmailとGoogleスプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を1通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
+> **レガシー（スプレッドシート）版**  
+> Google Workspaceアドオンとして提供される前に公開していたこのレガシー版（スプレッドシート版/v1シリーズ）は現在、開発が停止しています。今後、Google側での仕様変更等により使用できなくなる可能性もありますので、ご注意ください。アドオン版についての最新情報は、[このレポジトリのトップページ](https://github.com/ttsukagoshi/mail-merge-for-gmail)をご覧ください。
+
 ## 概要
 [Microsoft Wordで使える差し込み印刷](https://support.microsoft.com/ja-jp/office/%e3%83%a1%e3%83%bc%e3%83%ab%e3%80%81%e6%89%8b%e7%b4%99%e3%80%81%e3%83%a9%e3%83%99%e3%83%ab%e3%80%81%e5%b0%81%e7%ad%92%e3%82%92%e4%b8%80%e6%8b%ac%e3%81%ab%e3%81%97%e3%81%a6%e5%b7%ae%e3%81%97%e8%be%bc%e3%81%bf%e5%8d%b0%e5%88%b7%e3%82%92%e4%bd%bf%e7%94%a8%e3%81%99%e3%82%8b-f488ed5b-b849-4c11-9cff-932c49474705?ui=ja-jp&rs=ja-jp&ad=jp)がExcelの宛先リストを使って個別の宛名ラベルや文書を作成できるのと同じような使い勝手で、この「Gmailのための差し込みメール作成（Mail Merge for Gmail）」はGmailとGoogleスプレッドシートを組み合わせることで、受信者宛に個別化されたメールを送信できるようにします。
 - Gmailの下書きメールをテンプレートとして利用します。書式設定（文字の色など）や添付ファイルは、差し込み後のメールにも引き継がれます。

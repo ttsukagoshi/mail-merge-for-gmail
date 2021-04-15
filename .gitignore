@@ -1,5 +1,6 @@
 # clasp-related files
 .clasp.json
+memo.clasp.json
 
 # for testing
 src/test.js
