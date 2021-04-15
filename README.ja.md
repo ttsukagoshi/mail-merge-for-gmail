@@ -2,6 +2,9 @@
 [![Google Workspaceマーケットプレイスでこのアドオンを入手する](https://img.shields.io/badge/Google%20Workspace%20Add--on-Available-green)](https://workspace.google.com/marketplace/app/group_merge_mail_merge_for_gmail/586770229603) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter) [![Total alerts](https://img.shields.io/lgtm/alerts/g/ttsukagoshi/mail-merge-for-gmail.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ttsukagoshi/mail-merge-for-gmail/alerts/)  
 GmailとGoogleスプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を1通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
+> **レガシー（スプレッドシート）版**  
+> Google Workspaceアドオンとして提供される前に公開していたレガシー版（スプレッドシート版）は現在、開発が停止しています。今後、Google側での仕様変更等により使用できなくなる可能性もありますので、ご注意ください。ソースコードやサンプルスプレッドシートを確認したい方のために[GitHub上のブランチ](https://github.com/ttsukagoshi/mail-merge-for-gmail/tree/legacy-v1.8.0-spreadsheet)を残していますので、必要に応じてご参照ください。
+
 ## 概要
 ![Group Mergeのアイコン](https://lh3.googleusercontent.com/pw/ACtC-3eZPKFkzQJvMs2P_HgJIwNRSy1OGklUpOr0gm9ncC3OGcJw-nVvNUDYta6mMWo3d57gEc9KD_KV-UNOJvcTCBjGru3MG1KUpzP3z15I-bjEfT3u1V12mzRQrcA89pzb_RoIbINO3B1WxT4qP0KefNs=s96-no)  
 GmailとGoogleスプレッドシートを使って、宛名や会議の日時などの情報を宛先ごとに個別化したメールを作成して送信するための、オープンソースのGoogle Workspaceアドオン。
