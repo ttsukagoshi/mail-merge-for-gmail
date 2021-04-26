@@ -23,12 +23,12 @@
 
 // Default configurations
 const DEFAULT_CONFIG = {
-  'SPREADSHEET_URL': 'https://docs.google.com/spreadsheets/d/*****/edit',
-  'DATA_SHEET_NAME': 'sheetName',
+  'SPREADSHEET_URL': '', // 'https://docs.google.com/spreadsheets/d/*****/edit'
+  'DATA_SHEET_NAME': '', // 'sheetName'
   'TO': '{{Email}}',
   'CC': '',
   'BCC': '',
-  'TEMPLATE_SUBJECT': 'Enter subject here...',
+  'TEMPLATE_SUBJECT': '', // 'Enter subject here'
   'REPLACE_VALUE': 'NA',
   'MERGE_FIELD_MARKER_TEXT': '\\{\\{([^\\}]+)\\}\\}',
   'MERGE_FIELD_MARKER': /\{\{([^\}]+)\}\}/g, // deprecated
