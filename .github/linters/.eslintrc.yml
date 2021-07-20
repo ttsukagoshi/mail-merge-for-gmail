@@ -1,5 +1,4 @@
 ---
-
 #############################
 #############################
 ## JavaScript Linter rules ##
@@ -20,6 +19,7 @@ env:
 globals:
   # Atomics: readonly
   # SharedArrayBuffer: readonly
+  CacheService: readonly
   CalendarApp: readonly
   CardService: readonly
   DocumentApp: readonly
@@ -36,7 +36,7 @@ globals:
   SpreadsheetApp: readonly
   UrlFetchApp: readonly
   Utilities: readonly
-
+  XmlService: readonly
 
 ###############
 # Parser vars #
@@ -51,6 +51,7 @@ parserOptions:
 ###########
 extends:
   - 'eslint:recommended'
+  - 'plugin:prettier/recommended'
 plugins:
   - '@typescript-eslint'
 
