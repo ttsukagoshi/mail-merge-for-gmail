@@ -20,9 +20,7 @@
         "primaryColor": "#cc2f00",
         "secondaryColor": "#631700"
       },
-      "openLinkUrlPrefixes": [
-        "https://www.scriptable-assets.page/"
-      ],
+      "openLinkUrlPrefixes": ["https://www.scriptable-assets.page/"],
       "useLocaleFromApp": true,
       "homepageTrigger": {
         "runFunction": "buildHomepage",
