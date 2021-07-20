@@ -48,9 +48,10 @@ jobs:
       # Run Linter against code base #
       ################################
       - name: Lint Code Base
-        # uses: github/super-linter@v4
-        uses: docker://ghcr.io/github/super-linter:slim-v4 # See https://github.com/github/super-linter#images
+        uses: docker://ghcr.io/github/super-linter:slim-v4 # uses: github/super-linter@v4 See https://github.com/github/super-linter#images
         env:
+          LINTER_RULES_PATH: /
+          JAVASCRIPT_ES_CONFIG_FILE: .eslintrc.yml
           VALIDATE_ALL_CODEBASE: true
           VALIDATE_JAVASCRIPT_ES: true
           DEFAULT_BRANCH: main
