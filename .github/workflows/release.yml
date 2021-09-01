@@ -1,0 +1,80 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    env:
+      RELEASE_CLASPRC_ACCESS_TOKEN: ${{ secrets.RELEASE_CLASPRC_ACCESS_TOKEN }}
+      RELEASE_CLASPRC_CLIENT_ID: ${{ secrets.RELEASE_CLASPRC_CLIENT_ID }}
+      RELEASE_CLASPRC_CLIENT_SECRET: ${{ secrets.RELEASE_CLASPRC_CLIENT_SECRET }}
+      RELEASE_CLASPRC_EXPIRY_DATE: ${{ secrets.RELEASE_CLASPRC_EXPIRY_DATE }}
+      RELEASE_CLASPRC_ID_TOKEN: ${{ secrets.RELEASE_CLASPRC_ID_TOKEN }}
+      RELEASE_CLASPRC_REFRESH_TOKEN: ${{ secrets.RELEASE_CLASPRC_REFRESH_TOKEN }}
+      RELEASE_CLASP_SCRIPT_ID: ${{ secrets.RELEASE_CLASP_SCRIPT_ID }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Create ~/.clasprc.json
+        run: |
+          echo $(cat <<-EOS
+          {
+            "token": {
+              "access_token": "${RELEASE_CLASPRC_ACCESS_TOKEN}",
+              "scope": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/service.management https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/script.webapp.deploy openid https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/drive.metadata.readonly",
+              "token_type": "Bearer",
+              "id_token": "${RELEASE_CLASPRC_ID_TOKEN}",
+              "expiry_date": ${RELEASE_CLASPRC_EXPIRY_DATE},
+              "refresh_token": "${RELEASE_CLASPRC_REFRESH_TOKEN}"
+            },
+            "oauth2ClientSettings": {
+              "clientId": "${RELEASE_CLASPRC_CLIENT_ID}",
+              "clientSecret": "${RELEASE_CLASPRC_CLIENT_SECRET}",
+              "redirectUri": "http://localhost"
+            },
+            "isLocalCreds": false
+          }
+          EOS
+          ) > ~/.clasprc.json
+
+      - name: Create ~/.clasp.json
+        run: |
+          echo $(cat <<-EOS
+          {
+            "scriptId": "${RELEASE_CLASP_SCRIPT_ID}",
+            "rootDir": "./src"
+          }
+          EOS
+          ) > ./.clasp.json
+
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
+      - name: Upload files
+        run: npx @google/clasp push --force
+
+      - name: Add version
+        run: npx @google/clasp version ${{ steps.get_version.outputs.VERSION }}
