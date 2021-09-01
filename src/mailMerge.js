@@ -31,7 +31,7 @@ const DEFAULT_CONFIG = {
   TEMPLATE_SUBJECT: '', // 'Enter subject here'
   REPLACE_VALUE: 'NA',
   MERGE_FIELD_MARKER_TEXT: '\\{\\{([^\\}]+)\\}\\}',
-  MERGE_FIELD_MARKER: /\{\{([^\}]+)\}\}/g, // deprecated
+  MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g, // deprecated
   ENABLE_GROUP_MERGE: true,
   GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
   GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g, // deprecated
@@ -669,7 +669,7 @@ function mailMerge(
       // If the template is composed in HTML, check for in-line images
       // and create a mapping object of cid (content ID) and its corresponding in-line image blob.
       let regExpImgTag =
-        /\<img data-surl\=\"cid\:(?<cidDataSurl>[^\"]+)\"[^\>]+src\=\"cid\:(?<cidSrc>[^\"]+)\"[^\>]+alt\=\"(?<blobName>[^\"]+)\"[^\>]+\>/g;
+        /<img data-surl="cid:(?<cidDataSurl>[^"]+)"[^>]+src="cid:(?<cidSrc>[^"]+)"[^>]+alt="(?<blobName>[^"]+)"[^>]+>/g;
       let inLineImageTags = [...template.htmlBody.matchAll(regExpImgTag)];
       inLineImageBlobs = template.inLineImages.reduce((obj, blob) => {
         let cid = inLineImageTags.find(
