@@ -1,3 +1,5 @@
+.DS_Store
+
 # clasp-related files
 .clasp.json
 memo.clasp.json
