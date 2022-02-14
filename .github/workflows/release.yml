@@ -76,5 +76,5 @@ jobs:
       - name: Upload files
         run: npx @google/clasp push --force
 
-      - name: Add version
-        run: npx @google/clasp version ${{ steps.get_version.outputs.VERSION }}
+      - name: Deploy
+        run: npx @google/clasp deploy -d ${{ steps.get_version.outputs.VERSION }}
