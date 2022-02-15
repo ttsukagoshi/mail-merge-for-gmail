@@ -1,11 +1,10 @@
 .DS_Store
 
-# clasp-related files
+# clasp
 .clasp.json
-memo.clasp.json
 
-# node
-node_modules
+# Node.js
+node_modules/
 
-# test
-_debug.js
+# debugging
+src/debug/
