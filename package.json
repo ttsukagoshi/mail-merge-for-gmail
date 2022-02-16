@@ -1,0 +1,40 @@
+{
+  "name": "mail-merge-for-gmail",
+  "version": "3.0.2",
+  "description": "Group Merge: Mail Merge for Gmail. An open-sourced Google Workspace Add-on to send personalized emails based on Gmail template to multiple recipients using Google Sheets. The Group Merge feature allows the sender to group the contents of two or more rows into one row for a single recipient.",
+  "main": "src/mailMerge.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttsukagoshi/mail-merge-for-gmail.git"
+  },
+  "keywords": [
+    "gmail",
+    "spreadsheet",
+    "google-sheets",
+    "google-apps-script",
+    "mail-merge",
+    "gmail-drafts",
+    "google-workspace",
+    "google-workspace-add-on"
+  ],
+  "author": "ttsukagoshi",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ttsukagoshi/mail-merge-for-gmail/issues"
+  },
+  "homepage": "https://github.com/ttsukagoshi/mail-merge-for-gmail#readme",
+  "devDependencies": {
+    "@google/clasp": "^2.4.1",
+    "@types/google-apps-script": "^1.0.45",
+    "@typescript-eslint/eslint-plugin": "^5.10.2",
+    "@typescript-eslint/parser": "^5.10.2",
+    "eslint": "^8.8.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.5.1",
+    "typescript": "^4.5.5"
+  }
+}
