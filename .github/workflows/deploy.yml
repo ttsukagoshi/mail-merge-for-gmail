@@ -1,4 +1,4 @@
-name: Deploy on Public Env
+name: Deploy
 
 on:
   push:
