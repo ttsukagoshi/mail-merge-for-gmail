@@ -47,6 +47,7 @@ const UP_KEY_USER_CONFIG = 'userConfig';
 // Key lengths in milliseconds regarding time limit of add-on card actions.
 const ACTION_LIMIT_TIME = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
 const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger.
+// const APPS_SCRIPT_TIME_LIMIT = 6 * 60 * 1000; // Apps Script execution time limit is 6 or 30 minutes for Gmail and Workspace users, respectively
 const EXECUTE_TRIGGER_AFTER = 5 * 1000; // Milliseconds after which the mail merge process will resume by a scheduled trigger.
 
 //////////////////////////
@@ -541,8 +542,15 @@ function mailMerge(
   config = DEFAULT_CONFIG,
   prevProperties = {}
 ) {
-  var isPostProcess = Object.keys(prevProperties).length > 0;
-  var debugInfo = {
+  const isPostProcess = Object.keys(prevProperties).length > 0;
+  const myEmail = Session.getActiveUser().getEmail();
+  const localizedMessage = new LocalizedMessage(config.userLocale);
+  // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
+  const noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
+  // Save current settings in user property
+  const userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
+  let debugInfo = {
     completedRecipients: [],
     config: config,
     draftMode: draftMode,
@@ -552,17 +560,10 @@ function mailMerge(
     processTime: [],
     start: new Date().getTime(),
   };
-  var myEmail = Session.getActiveUser().getEmail();
-  var localizedMessage = new LocalizedMessage(config.userLocale);
-  var cardMessage = '';
-  var templateDraftIds = isPostProcess ? prevProperties.templateDraftIds : [];
+  let cardMessage = '';
+  let templateDraftIds = isPostProcess ? prevProperties.templateDraftIds : [];
   // Reset list of created drafts
-  var createdDraftIds = isPostProcess ? prevProperties.createdDraftIds : [];
-  // Save current settings in user property
-  var userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
-  // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
-  var noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
+  let createdDraftIds = isPostProcess ? prevProperties.createdDraftIds : [];
   if (config.hostApp == 'SHEETS' && !isPostProcess) {
     var ui = SpreadsheetApp.getUi();
   }
