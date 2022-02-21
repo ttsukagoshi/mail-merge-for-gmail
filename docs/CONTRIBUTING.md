@@ -6,7 +6,7 @@ First of all, thank you for taking interest in Group Merge! We would love to hav
 
 ## 💬 Concept of Group Merge
 
-Group Merge is designed to make **basic** mail merge operations on Gmail easy-to-use, open, and free for every Gmail users. As such, features focusing on commercial use of mail merge, like tracking link clicks for each emails sent, are considered excessive and will not be target of addtional development or pull request reviews.
+Group Merge is designed to make **basic** mail merge operations on Gmail easy-to-use, open, and free for every Gmail users. As such, features focusing on commercial use of mail merge, like tracking link clicks for each emails sent, are considered excessive and will not be target of additional development or pull request reviews.
 
 ## 📝 Contributing
 
