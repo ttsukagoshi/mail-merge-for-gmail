@@ -45,9 +45,10 @@ const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
 const UP_KEY_PREV_CONFIG = 'prevConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
 // Key lengths in milliseconds regarding time limit of add-on card actions.
-const ACTION_LIMIT_TIME = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
-const ACTION_LIMIT_TIME_OFFSET = 5 * 1000; // Milliseconds prior to the actual ACTION_LIMIT_TIME at which the script will break the current mail merge process for a scheduled trigger.
-// const APPS_SCRIPT_TIME_LIMIT = 6 * 60 * 1000; // Apps Script execution time limit is 6 or 30 minutes for Gmail and Workspace users, respectively
+const ADDON_TIME_LIMIT = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds, in milliseconds. See https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
+const ADDON_TIME_LIMIT_OFFSET = 5 * 1000; // Milliseconds prior to the actual ADDON_TIME_LIMIT at which the script will break the current mail merge process for a scheduled trigger.
+const APPS_SCRIPT_TIME_LIMIT = 6 * 60 * 1000; // Apps Script execution time limit. 6 minutes, in milliseconds, for all users. See https://developers.google.com/apps-script/guides/services/quotas#current_limitations
+const APPS_SCRIPT_TIME_LIMIT_OFFSET = 30 * 1000; // Milliseconds prior to the actual APPS_SCRIPT_TIME_LIMIT at which the script will break the current mail merge process for a scheduled trigger.
 const EXECUTE_TRIGGER_AFTER = 5 * 1000; // Milliseconds after which the mail merge process will resume by a scheduled trigger.
 
 //////////////////////////
@@ -524,6 +525,7 @@ function postProcessMailMerge() {
   config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
   config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
   var prevProperties = {
+    exeRounds: parseInt(userPropertiesValues.exeRounds) + 1,
     completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
     createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
     templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
@@ -542,7 +544,11 @@ function mailMerge(
   config = DEFAULT_CONFIG,
   prevProperties = {}
 ) {
-  const isPostProcess = Object.keys(prevProperties).length > 0;
+  // Determine whether this script is executed manually or by a time-trigger
+  const isTimeTriggered = Object.keys(prevProperties).length > 0;
+  const executionTimeThreshold = isTimeTriggered
+    ? APPS_SCRIPT_TIME_LIMIT - APPS_SCRIPT_TIME_LIMIT_OFFSET
+    : ADDON_TIME_LIMIT - ADDON_TIME_LIMIT_OFFSET;
   const myEmail = Session.getActiveUser().getEmail();
   const localizedMessage = new LocalizedMessage(config.userLocale);
   // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
@@ -554,17 +560,18 @@ function mailMerge(
     completedRecipients: [],
     config: config,
     draftMode: draftMode,
-    prevCompletedRecipients: isPostProcess
+    exeRounds: isTimeTriggered ? prevProperties.exeRounds : 0,
+    prevCompletedRecipients: isTimeTriggered
       ? prevProperties.completedRecipients
       : [],
     processTime: [],
     start: new Date().getTime(),
   };
   let cardMessage = '';
-  let templateDraftIds = isPostProcess ? prevProperties.templateDraftIds : [];
+  let templateDraftIds = isTimeTriggered ? prevProperties.templateDraftIds : [];
   // Reset list of created drafts
-  let createdDraftIds = isPostProcess ? prevProperties.createdDraftIds : [];
-  if (config.hostApp == 'SHEETS' && !isPostProcess) {
+  let createdDraftIds = isTimeTriggered ? prevProperties.createdDraftIds : [];
+  if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
     var ui = SpreadsheetApp.getUi();
   }
   try {
@@ -585,7 +592,7 @@ function mailMerge(
         new Date().getTime() - debugInfo.start
       } (millisec from start)`
     );
-    if (config.hostApp == 'SHEETS' && !isPostProcess) {
+    if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
       // Confirmation before sending email
       let confirmAccount = localizedMessage.replaceConfirmAccount(
         draftMode,
@@ -776,17 +783,17 @@ function mailMerge(
         // List the created draft ID
         createdDraftIds.push(draft.getId());
       }
+      debugInfo.completedRecipients.push(k);
       // Determine current process time lapse.
-      // If the remaining time limit is less than ACTION_LIMIT_TIME_OFFSET, break the process to complete by execution on time-based triggers.
       let timeElapsed = new Date().getTime() - debugInfo.start;
       debugInfo.processTime.push(
-        `Message for ${k} drafted/sent at ${timeElapsed} (millisec from start)`
+        `Message for ${k} ${
+          draftMode ? 'drafted' : 'sent'
+        } at ${timeElapsed} (millisec from start)`
       );
-      debugInfo.completedRecipients.push(k);
-      if (
-        ACTION_LIMIT_TIME - timeElapsed < ACTION_LIMIT_TIME_OFFSET &&
-        !isPostProcess
-      ) {
+      if (timeElapsed >= executionTimeThreshold) {
+        // If the script execution time has passed more than executionTimeThreshold,
+        // break the process to complete by execution on time-based triggers.
         debugInfo.completedRecipients =
           debugInfo.prevCompletedRecipients.concat(
             debugInfo.completedRecipients
@@ -796,27 +803,49 @@ function mailMerge(
             completedRecipients: JSON.stringify(debugInfo.completedRecipients),
             createdDraftIds: JSON.stringify(createdDraftIds),
             draftMode: draftMode,
+            exeRounds: debugInfo.exeRounds,
             templateDraftIds: JSON.stringify(templateDraftIds),
           },
           false
         );
-        ScriptApp.newTrigger('postProcessMailMerge')
-          .timeBased()
-          .after(EXECUTE_TRIGGER_AFTER)
-          .create();
+        if (!isTimeTriggered) {
+          // If this is the first execution of mailMerge,
+          // i.e, it this is manually executed, and not triggered,
+          // create a new time-based trigger
+          ScriptApp.newTrigger('postProcessMailMerge')
+            .timeBased()
+            .after(EXECUTE_TRIGGER_AFTER)
+            .create();
+        } else if (debugInfo.exeRounds == 1) {
+          // If this is executed on a time-based trigger for the first time,
+          // create a new hourly trigger for further post-process.
+          // Hourly, because Google places a limitation on
+          // the recurrence interval for an Add-on trigger;
+          // it must be at least one hour.
+          ScriptApp.newTrigger('postProcessMailMerge')
+            .timeBased()
+            .everyHours(1)
+            .create();
+        }
         debugInfo.processTime.push(
           `Saved property and set trigger for post-process at ${
             new Date().getTime() - debugInfo.start
           } (millisec from start)`
         );
-        throw new Error(
-          localizedMessage.replaceProceedingToPostProcess(
-            ACTION_LIMIT_TIME / 1000,
-            myEmail,
-            draftMode,
-            debugInfo.completedRecipients.length
-          )
-        );
+        let notificationMessage = isTimeTriggered
+          ? localizedMessage.replaceContinuingPostProcess(
+              APPS_SCRIPT_TIME_LIMIT / 1000,
+              myEmail,
+              draftMode,
+              debugInfo.completedRecipients.length
+            )
+          : localizedMessage.replaceProceedingToPostProcess(
+              ADDON_TIME_LIMIT / 1000,
+              myEmail,
+              draftMode,
+              debugInfo.completedRecipients.length
+            );
+        throw new Error(notificationMessage);
       }
     }
     // Notification
@@ -827,6 +856,12 @@ function mailMerge(
       draftMode,
       debugInfo.completedRecipients.length
     );
+    // Delete time-based triggers
+    if (isTimeTriggered) {
+      ScriptApp.getProjectTriggers().forEach((trigger) =>
+        ScriptApp.deleteTrigger(trigger)
+      );
+    }
   } catch (error) {
     let knownErrorMessages = [];
     for (let k in localizedMessage.messageList) {
@@ -839,6 +874,9 @@ function mailMerge(
       knownErrorMessages.includes(error.message) ||
       error.message.startsWith(
         localizedMessage.messageList.proceedingToPostProcess.slice(0, 10)
+      ) ||
+      error.message.startsWith(
+        localizedMessage.messageList.continuingPostProcess.slice(0, 10)
       )
     ) {
       cardMessage = error.message;
@@ -873,7 +911,7 @@ function mailMerge(
     );
     cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
   }
-  if (isPostProcess) {
+  if (isTimeTriggered) {
     MailApp.sendEmail(
       myEmail,
       localizedMessage.messageList.subjectPostProcessUpdate,
