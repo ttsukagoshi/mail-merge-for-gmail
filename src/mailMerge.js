@@ -514,26 +514,6 @@ function sendEmails(event) {
 }
 
 /**
- * Post-process for mailMerge(); continues the process of mail merge
- * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
- */
-function postProcessMailMerge() {
-  var userPropertiesValues =
-    PropertiesService.getUserProperties().getProperties();
-  var draftMode = userPropertiesValues['draftMode'] === 'true';
-  var config = JSON.parse(userPropertiesValues[UP_KEY_PREV_CONFIG]);
-  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
-  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
-  var prevProperties = {
-    exeRounds: parseInt(userPropertiesValues.exeRounds) + 1,
-    completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
-    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
-    templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
-  };
-  mailMerge(draftMode, config, prevProperties);
-}
-
-/**
  * Bulk send personalized emails based on a designated Gmail draft.
  * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by parseConfig_(eventObj)
@@ -919,6 +899,26 @@ function mailMerge(
     );
   }
   return cardMessage;
+}
+
+/**
+ * Post-process for mailMerge(); continues the process of mail merge
+ * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
+ */
+function postProcessMailMerge() {
+  var userPropertiesValues =
+    PropertiesService.getUserProperties().getProperties();
+  var draftMode = userPropertiesValues['draftMode'] === 'true';
+  var config = JSON.parse(userPropertiesValues[UP_KEY_PREV_CONFIG]);
+  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
+  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
+  var prevProperties = {
+    exeRounds: parseInt(userPropertiesValues.exeRounds) + 1,
+    completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
+    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
+    templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
+  };
+  mailMerge(draftMode, config, prevProperties);
 }
 
 /**
