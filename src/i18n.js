@@ -17,7 +17,7 @@
 /* exported LocalizedMessage  */
 
 // Message Naming Rules:
-// Name of the message (key) must start with 'error' for error messages
+// Name of error messages (keys) must start with 'error'
 // to distinguish between expected and unexpected errors
 
 const MESSAGES = {
@@ -111,10 +111,14 @@ const MESSAGES = {
       'Unexpected error while getting the method or property openByUrl',
     appsScriptMessageNoPermissionErrorStartsWith:
       'You do not have permission to access the requested document.',
-    proceedingToPostProcess:
-      'Since the current mail merge process is expected to exceed the {{actionLimitTimeInSec}}-second execution time limit for Google Workspace add-ons, the remaining process will be conducted on a time-based trigger. A mail notification will be sent to {{myEmail}} once the whole process is complete.\nDraft Mode: {{draftMode}}\nMessage Count: {{messageCount}}',
-    continuingPostProcess:
-      'CONTINUING MAIL MERGE\nSince the current mail merge process is expected to exceed the {{appsScriptLimitTimeInSec}}-second execution time limit for Google Apps Script, the remaining process will be continued on a time-based trigger. A mail notification will be sent to {{myEmail}} once the whole process is complete.\nDraft Mode: {{draftMode}}\nMessage Count: {{messageCount}}',
+    proceedingToPostProcessMailMerge:
+      'Since the current mail merge process is expected to exceed the {{actionLimitTimeInSec}}-second execution time limit for Google Workspace add-ons, the remaining process will be conducted on a time-based trigger. An email notification will be sent to {{myEmail}} once the whole process is complete.\nDraft Mode: {{draftMode}}\nMessage Count: {{messageCount}}',
+    continuingPostProcessMailMerge:
+      'CONTINUING MAIL MERGE\nSince the current mail merge process is expected to exceed the {{appsScriptLimitTimeInSec}}-second execution time limit for Google Apps Script, the remaining process will be continued on a time-based trigger. An email notification will be sent to {{myEmail}} once the whole process is complete.\nDraft Mode: {{draftMode}}\nMessage Count: {{messageCount}}',
+    proceedingToPostProcessSendDrafts:
+      'Since the current send-drafts process is expected to exceed the {{actionLimitTimeInSec}}-second execution time limit for Google Workspace add-ons, the remaining process will be conducted on a time-based trigger. An email notification will be sent to {{myEmail}} once the whole process is complete.\nMessage Count: {{messageCount}}',
+    continuingPostProcessSendDrafts:
+      'CONTINUING "SEND DRAFTS"\nSince the current send-drafts process is expected to exceed the {{appsScriptLimitTimeInSec}}-second execution time limit for Google Apps Script, the remaining process will be continued on a time-based trigger. An email notification will be sent to {{myEmail}} once the whole process is complete.\nMessage Count: {{messageCount}}',
     subjectPostProcessUpdate: '[GROUP MERGE] Mail Merge Notice',
   },
   ja: {
@@ -208,15 +212,22 @@ const MESSAGES = {
       'SpreadsheetApp オブジェクトでの openByUrl メソッドまたはプロパティの取得中に予期しないエラーが発生',
     appsScriptMessageNoPermissionErrorStartsWith:
       'リクエストされたドキュメントにアクセスする権限がありません。',
-    proceedingToPostProcess:
-      '現在の処理はGoogle Workspaceアドオンに設けられた{{actionLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの差し込み処理はトリガーによって自動的に実行され、完了は{{myEmail}}宛のメールで通知されます。\n下書きモード：{{draftMode}}\n現在までに完了したメッセージ数：{{messageCount}}',
-    continuingPostProcess:
-      '差し込み処理が継続中です\n現在の処理はGoogle Apps Scriptに設けられた{{appsScriptLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの差し込み処理はトリガーによって自動的に継続実行され、完了は{{myEmail}}宛のメールで通知されます。\n下書きモード：{{draftMode}}\n現在までに完了したメッセージ数：{{messageCount}}',
-    subjectCompletePostProcess: '[GROUP MERGE] 差し込み処理のお知らせ',
+    proceedingToPostProcessMailMerge:
+      '現在の差し込み処理はGoogle Workspaceアドオンに設けられた{{actionLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの処理はトリガーによって自動的に実行され、完了は{{myEmail}}宛のメールで通知されます。\n\n下書きモード：{{draftMode}}\n現在までに完了したメッセージ数：{{messageCount}}',
+    continuingPostProcessMailMerge:
+      '差し込み処理が継続中です\n現在の処理はGoogle Apps Scriptに設けられた{{appsScriptLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの処理はトリガーによって自動的に継続実行され、完了は{{myEmail}}宛のメールで通知されます。\n\n下書きモード：{{draftMode}}\n現在までに完了したメッセージ数：{{messageCount}}',
+    proceedingToPostProcessSendDrafts:
+      '現在の「作成済みの下書きを送信」処理はGoogle Workspaceアドオンに設けられた{{actionLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの処理はトリガーによって自動的に実行され、完了は{{myEmail}}宛のメールで通知されます。\n現在までに完了したメッセージ数：{{messageCount}}',
+    continuingPostProcessSendDrafts:
+      '「作成済みの下書きを送信」処理が継続中です\n現在の処理はGoogle Apps Scriptに設けられた{{appsScriptLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの処理はトリガーによって自動的に継続実行され、完了は{{myEmail}}宛のメールで通知されます。\n\n現在までに完了したメッセージ数：{{messageCount}}',
+    subjectPostProcessUpdate: '[GROUP MERGE] 差し込みメール処理',
   },
 };
 
 class LocalizedMessage {
+  /**
+   * @param {String} userLocale
+   */
   constructor(userLocale) {
     this.DEFAULT_LOCALE = 'en';
     this.locale = MESSAGES[userLocale] ? userLocale : this.DEFAULT_LOCALE;
@@ -295,20 +306,20 @@ class LocalizedMessage {
     return text;
   }
   /**
-   * Replace placeholder string in this.messageList.proceedingToPostProcess
+   * Replace placeholder string in this.messageList.proceedingToPostProcessMailMerge
    * @param {number} actionLimitTimeInSec
    * @param {string} myEmail
    * @param {boolean} draftMode
    * @param {number} messageCount Number of emails drafted or sent
    * @returns {string} The replaced text.
    */
-  replaceProceedingToPostProcess(
+  replaceProceedingToPostProcessMailMerge(
     actionLimitTimeInSec,
     myEmail,
     draftMode,
     messageCount
   ) {
-    let text = this.messageList.proceedingToPostProcess;
+    let text = this.messageList.proceedingToPostProcessMailMerge;
     let placeholderValues = [
       {
         regexp: '{{actionLimitTimeInSec}}',
@@ -331,20 +342,20 @@ class LocalizedMessage {
     return text;
   }
   /**
-   * Replace placeholder string in this.messageList.continuingPostProcess
+   * Replace placeholder string in this.messageList.continuingPostProcessMailMerge
    * @param {number} appsScriptLimitTimeInSec
    * @param {string} myEmail
    * @param {boolean} draftMode
    * @param {number} messageCount Number of emails drafted or sent
    * @returns {string} The replaced text.
    */
-  replaceContinuingPostProcess(
+  replaceContinuingPostProcessMailMerge(
     appsScriptLimitTimeInSec,
     myEmail,
     draftMode,
     messageCount
   ) {
-    let text = this.messageList.continuingPostProcess;
+    let text = this.messageList.continuingPostProcessMailMerge;
     let placeholderValues = [
       {
         regexp: '{{appsScriptLimitTimeInSec}}',
@@ -357,6 +368,66 @@ class LocalizedMessage {
       {
         regexp: '{{draftMode}}',
         value: draftMode,
+      },
+      {
+        regexp: '{{messageCount}}',
+        value: messageCount,
+      },
+    ];
+    text = this.replacePlaceholders_(text, placeholderValues);
+    return text;
+  }
+  /**
+   * Replace placeholder string in this.messageList.proceedingToPostProcessSendDrafts
+   * @param {number} actionLimitTimeInSec
+   * @param {string} myEmail
+   * @param {number} messageCount Number of emails drafted or sent
+   * @returns {string} The replaced text.
+   */
+  replaceProceedingToPostProcessSendDrafts(
+    actionLimitTimeInSec,
+    myEmail,
+    messageCount
+  ) {
+    let text = this.messageList.proceedingToPostProcessSendDrafts;
+    let placeholderValues = [
+      {
+        regexp: '{{actionLimitTimeInSec}}',
+        value: actionLimitTimeInSec,
+      },
+      {
+        regexp: '{{myEmail}}',
+        value: myEmail,
+      },
+      {
+        regexp: '{{messageCount}}',
+        value: messageCount,
+      },
+    ];
+    text = this.replacePlaceholders_(text, placeholderValues);
+    return text;
+  }
+  /**
+   * Replace placeholder string in this.messageList.continuingPostProcessSendDrafts
+   * @param {number} appsScriptLimitTimeInSec
+   * @param {string} myEmail
+   * @param {number} messageCount Number of emails drafted or sent
+   * @returns {string} The replaced text.
+   */
+  replaceContinuingPostProcessSendDrafts(
+    appsScriptLimitTimeInSec,
+    myEmail,
+    messageCount
+  ) {
+    let text = this.messageList.continuingPostProcessSendDrafts;
+    let placeholderValues = [
+      {
+        regexp: '{{appsScriptLimitTimeInSec}}',
+        value: appsScriptLimitTimeInSec,
+      },
+      {
+        regexp: '{{myEmail}}',
+        value: myEmail,
       },
       {
         regexp: '{{messageCount}}',
