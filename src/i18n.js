@@ -14,8 +14,6 @@
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
-/* exported LocalizedMessage  */
-
 // Message Naming Rules:
 // Name of error messages (keys) must start with 'error'
 // to distinguish between expected and unexpected errors
@@ -437,4 +435,8 @@ class LocalizedMessage {
     text = this.replacePlaceholders_(text, placeholderValues);
     return text;
   }
+}
+
+if (typeof module === 'object') {
+  module.exports = { LocalizedMessage };
 }

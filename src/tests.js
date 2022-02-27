@@ -1,4 +1,3 @@
-/* exported resetUserProperties, testAll */
 /* global fillInTemplate_ */
 
 function testAll() {
@@ -95,4 +94,8 @@ function testFillInTemplate() {
  */
 function resetUserProperties() {
   PropertiesService.getUserProperties().deleteAllProperties();
+}
+
+if (typeof module === 'object') {
+  module.exports = { resetUserProperties, testAll };
 }

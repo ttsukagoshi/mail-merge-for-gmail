@@ -15,16 +15,6 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported
-buildHomepage,
-buildHomepageRestoreDefault,
-buildHomepageRestoreUserConfig,
-createDraftEmails,
-postProcessMailMerge,
-postProcessSendDrafts,
-saveUserConfig,
-sendCreatedDrafts,
-sendEmails */
 
 //////////////////////
 // Global Variables //
@@ -1266,4 +1256,18 @@ function getKnownErrorMessages_(userLocale) {
     knownErrorMessages.push(localizedMessage.messageList[k]);
   }
   return knownErrorMessages;
+}
+
+if (typeof module === 'object') {
+  module.exports = {
+    buildHomepage,
+    buildHomepageRestoreDefault,
+    buildHomepageRestoreUserConfig,
+    createDraftEmails,
+    postProcessMailMerge,
+    postProcessSendDrafts,
+    saveUserConfig,
+    sendCreatedDrafts,
+    sendEmails,
+  };
 }
