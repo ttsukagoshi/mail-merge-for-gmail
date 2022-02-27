@@ -15,7 +15,16 @@
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
 /* global LocalizedMessage */
-/* exported buildHomepage, buildHomepageRestoreDefault, buildHomepageRestoreUserConfig, createDraftEmails, postProcessMailMerge, saveUserConfig, sendDrafts, sendEmails */
+/* exported
+buildHomepage,
+buildHomepageRestoreDefault,
+buildHomepageRestoreUserConfig,
+createDraftEmails,
+postProcessMailMerge,
+postProcessSendDrafts,
+saveUserConfig,
+sendCreatedDrafts,
+sendEmails */
 
 //////////////////////
 // Global Variables //
@@ -42,7 +51,8 @@ const DEFAULT_CONFIG = {
 };
 // Key(s) for storing and calling settings stored as user property
 const UP_KEY_CREATED_DRAFT_IDS = 'createdDraftIds';
-const UP_KEY_PREV_CONFIG = 'prevConfig';
+const UP_KEY_PREV_MAIL_MERGE_CONFIG = 'prevMailMergeConfig';
+const UP_KEY_PREV_SEND_DRAFTS_CONFIG = 'prevSendDraftsConfig';
 const UP_KEY_USER_CONFIG = 'userConfig';
 // Key lengths in milliseconds regarding time limit of add-on card actions.
 const ADDON_TIME_LIMIT = 30 * 1000; // Card actions have a limited execution time of maximum 30 seconds, in milliseconds. See https://developers.google.com/workspace/add-ons/concepts/actions#callback_functions
@@ -64,7 +74,7 @@ function buildHomepage(event) {
   var up = PropertiesService.getUserProperties();
   var config =
     JSON.parse(up.getProperty(UP_KEY_USER_CONFIG)) ||
-    JSON.parse(up.getProperty(UP_KEY_PREV_CONFIG)) ||
+    JSON.parse(up.getProperty(UP_KEY_PREV_MAIL_MERGE_CONFIG)) ||
     DEFAULT_CONFIG;
   return createMailMergeCard(
     event.commonEventObject.userLocale,
@@ -98,7 +108,7 @@ function buildHomepageRestoreUserConfig(event) {
 function buildHomepageRestoreDefault(event) {
   PropertiesService.getUserProperties()
     .setProperty(UP_KEY_USER_CONFIG, '[{}]')
-    .setProperty(UP_KEY_PREV_CONFIG, '[{}]');
+    .setProperty(UP_KEY_PREV_MAIL_MERGE_CONFIG, '[{}]');
   return createMailMergeCard(
     event.commonEventObject.userLocale,
     event.commonEventObject.hostApp,
@@ -115,20 +125,20 @@ function buildHomepageRestoreDefault(event) {
  */
 function createMailMergeCard(userLocale, hostApp, config) {
   // Load localized messages
-  var localizedMessage = new LocalizedMessage(userLocale);
+  const localizedMessage = new LocalizedMessage(userLocale);
   // Load user properties
-  var userProperties = PropertiesService.getUserProperties();
-  var createdDraftIds = JSON.parse(
+  const userProperties = PropertiesService.getUserProperties();
+  const createdDraftIds = JSON.parse(
     userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS)
   );
-  var disableSendDrafts = !createdDraftIds || createdDraftIds.length == 0;
+  const disableSendDrafts = !createdDraftIds || createdDraftIds.length == 0;
   // Get URL of currently open spreadsheet if host is Google Sheets
-  var ssUrl = null;
+  let ssUrl = null;
   if (hostApp == 'SHEETS') {
     ssUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
   }
   // Build card
-  var builder = CardService.newCardBuilder();
+  let builder = CardService.newCardBuilder();
   // Message Section
   builder.addSection(
     CardService.newCardSection()
@@ -143,7 +153,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
             .setText(localizedMessage.messageList.buttonSendDrafts)
             .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
             .setOnClickAction(
-              CardService.newAction().setFunctionName('sendDrafts')
+              CardService.newAction().setFunctionName('sendCreatedDrafts')
             )
             .setDisabled(disableSendDrafts)
         )
@@ -372,6 +382,8 @@ function test(event) {
  * Builder for message cards to present error and other messages to the add-on user.
  * @param {String} message Message string that can accept some basic HTML formatting
  * described in https://developers.google.com/workspace/add-ons/concepts/widgets?hl=en#text_formatting
+ * @param {String} userLocale Two-letter user locale like 'ja', included in
+ * the Google Workspace Add-on event object at event.commonEventObject.userLocale
  */
 function createMessageCard(message, userLocale) {
   var localizedMessage = new LocalizedMessage(userLocale);
@@ -442,38 +454,133 @@ function createDraftEmails(event) {
  * @param {Object} event Google Workspace Add-on Event object.
  * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
-function sendDrafts(event) {
+function sendCreatedDrafts(event) {
   const config = parseConfig_(event);
-  var myEmail = Session.getActiveUser().getEmail();
-  var localizedMessage = new LocalizedMessage(config.userLocale);
-  var userProperties = PropertiesService.getUserProperties();
-  var cardMessage = '';
+  return createMessageCard(sendDrafts(config), config.userLocale);
+}
+
+/**
+ * The core function for sendCreatedDrafts
+ * @param {Object} config Object returned by parseConfig_(eventObj)
+ * @param {Object} prevProperties Properties handed over from the original mail merge process. Required on triggered executions.
+ * @returns {String}  Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
+ */
+function sendDrafts(config, prevProperties = {}) {
+  // Determine whether this script is executed manually or by a time-trigger
+  const isTimeTriggered = Object.keys(prevProperties).length > 0;
+  const executionTimeThreshold = isTimeTriggered
+    ? APPS_SCRIPT_TIME_LIMIT - APPS_SCRIPT_TIME_LIMIT_OFFSET
+    : ADDON_TIME_LIMIT - ADDON_TIME_LIMIT_OFFSET;
+  const myEmail = Session.getActiveUser().getEmail();
+  const localizedMessage = new LocalizedMessage(config.userLocale);
+  const userProperties = PropertiesService.getUserProperties();
+  // Save current settings in user property
+  userProperties.setProperty(
+    UP_KEY_PREV_SEND_DRAFTS_CONFIG,
+    JSON.stringify(config)
+  );
+  let debugInfo = {
+    config: config,
+    exeRoundsSendDrafts: isTimeTriggered
+      ? prevProperties.exeRoundsSendDrafts
+      : 0,
+    processTime: [],
+    start: new Date().getTime(),
+  };
+  let cardMessage = '';
   try {
     let messageCount = 0;
-    if (config.hostApp == 'SHEETS') {
+    if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
       // Confirmation before sending email
       var ui = SpreadsheetApp.getUi();
-      let confirmSend = localizedMessage.replaceConfirmSendingOfDraft(myEmail);
-      let answer = ui.alert(confirmSend, ui.ButtonSet.OK_CANCEL);
+      let answer = ui.alert(
+        localizedMessage.replaceConfirmSendingOfDraft(myEmail),
+        ui.ButtonSet.OK_CANCEL
+      );
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
       }
     }
     // Get the values of createdDraftIds, the string of draft IDs to send, stored in the user property
-    let createdDraftIds = JSON.parse(
-      userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS)
-    );
+    let createdDraftIds = isTimeTriggered
+      ? prevProperties.createdDraftIds
+      : JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
     if (!createdDraftIds || createdDraftIds.length == 0) {
       // Throw error if no draft ID is stored.
       throw new Error(localizedMessage.messageList.errorNoDraftToSend);
     }
     // Send emails
-    GmailApp.getDrafts().forEach((draft) => {
-      if (createdDraftIds.includes(draft.getId())) {
+    let drafts = GmailApp.getDrafts();
+    debugInfo.processTime.push(
+      `Retrieved Gmail drafts at ${
+        new Date().getTime() - debugInfo.start
+      } (millisec from start)`
+    );
+    for (let i = 0; i < drafts.length; i++) {
+      let draft = drafts[i];
+      let draftId = draft.getId();
+      let isSent = false;
+      if (createdDraftIds.includes(draftId)) {
         draft.send();
         messageCount += 1;
+        isSent = true;
+        createdDraftIds = createdDraftIds.filter((id) => id !== draftId);
       }
-    });
+      // Determine current process time lapse.
+      let timeElapsed = new Date().getTime() - debugInfo.start;
+      debugInfo.processTime.push(
+        `Draft (ID: ${draftId}) ${
+          isSent ? 'sent' : 'checked'
+        } at ${timeElapsed} (millisec from start)`
+      );
+      if (timeElapsed >= executionTimeThreshold) {
+        // If the script execution time has passed more than executionTimeThreshold,
+        // break the process to complete by execution on time-based triggers.
+        userProperties.setProperties(
+          {
+            createdDraftIds: JSON.stringify(createdDraftIds),
+            exeRoundsSendDrafts: debugInfo.exeRoundsSendDrafts,
+          },
+          false
+        );
+        if (!isTimeTriggered) {
+          // If this is the first execution of sendDrafts,
+          // i.e, it this is manually executed, and not triggered,
+          // create a new time-based trigger
+          ScriptApp.newTrigger('postProcessSendDrafts')
+            .timeBased()
+            .after(EXECUTE_TRIGGER_AFTER)
+            .create();
+        } else if (debugInfo.exeRoundsSendDrafts == 1) {
+          // If this is executed on a time-based trigger for the first time,
+          // create a new hourly trigger for further post-process.
+          // Hourly, because Google places a limitation on
+          // the recurrence interval for an Add-on trigger;
+          // it must be at least one hour.
+          ScriptApp.newTrigger('postProcessSendDrafts')
+            .timeBased()
+            .everyHours(1)
+            .create();
+        }
+        debugInfo.processTime.push(
+          `Saved property and trigger set for post-process at ${
+            new Date().getTime() - debugInfo.start
+          } (millisec from start)`
+        );
+        let notificationMessage = isTimeTriggered
+          ? localizedMessage.replaceContinuingPostProcessSendDrafts(
+              APPS_SCRIPT_TIME_LIMIT / 1000,
+              myEmail,
+              messageCount
+            )
+          : localizedMessage.replaceProceedingToPostProcessSendDrafts(
+              ADDON_TIME_LIMIT / 1000,
+              myEmail,
+              messageCount
+            );
+        throw new Error(notificationMessage);
+      }
+    }
     // Empty createdDraftIds
     createdDraftIds = [];
     userProperties.setProperty(
@@ -481,22 +588,74 @@ function sendDrafts(event) {
       JSON.stringify(createdDraftIds)
     );
     cardMessage = localizedMessage.replaceCompleteMessage(false, messageCount);
-  } catch (error) {
-    let knownErrorMessages = [];
-    for (let k in localizedMessage.messageList) {
-      if (!k.startsWith('error')) {
-        continue;
-      }
-      knownErrorMessages.push(localizedMessage.messageList[k]);
+    // Delete time-based triggers
+    if (isTimeTriggered) {
+      ScriptApp.getProjectTriggers().forEach((trigger) =>
+        ScriptApp.deleteTrigger(trigger)
+      );
     }
-    if (knownErrorMessages.includes(error.message)) {
+  } catch (error) {
+    let knownErrorMessages = getKnownErrorMessages_(config.userLocale);
+    if (
+      knownErrorMessages.includes(error.message) ||
+      error.message.startsWith(
+        localizedMessage.messageList.proceedingToPostProcessSendDrafts.slice(
+          0,
+          10
+        )
+      ) ||
+      error.message.startsWith(
+        localizedMessage.messageList.continuingPostProcessSendDrafts.slice(
+          0,
+          10
+        )
+      )
+    ) {
       cardMessage = error.message;
     } else {
       cardMessage =
         localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
     }
   }
-  return createMessageCard(cardMessage, config.userLocale);
+  if (config.ENABLE_DEBUG_MODE) {
+    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
+    for (let k in debugInfo) {
+      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
+    }
+    MailApp.sendEmail(
+      myEmail,
+      `[GROUP MERGE] Debug Info`,
+      `${cardMessage}\n\n${debugInfoText}`
+    );
+    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
+  }
+  if (isTimeTriggered) {
+    MailApp.sendEmail(
+      myEmail,
+      localizedMessage.messageList.subjectPostProcessUpdate,
+      cardMessage
+    );
+  }
+  return cardMessage;
+}
+
+/**
+ * Post-process for sendDrafts(); continues the process of sending created drafts
+ * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
+ */
+function postProcessSendDrafts() {
+  const userPropertiesValues =
+    PropertiesService.getUserProperties().getProperties();
+  let config = JSON.parse(userPropertiesValues[UP_KEY_PREV_SEND_DRAFTS_CONFIG]);
+  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
+  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
+  const prevProperties = {
+    exeRoundsSendDrafts: parseInt(userPropertiesValues.exeRoundsSendDrafts) + 1,
+    // completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
+    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
+    // templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
+  };
+  sendDrafts(config, prevProperties);
 }
 
 /**
@@ -514,10 +673,11 @@ function sendEmails(event) {
 }
 
 /**
- * Bulk send personalized emails based on a designated Gmail draft.
- * @param {boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
+ * Core function of mail merge
+ * @param {Boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by parseConfig_(eventObj)
- * @return {string} Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
+ * @param {Object} prevProperties Properties handed over from the original mail merge process. Required on triggered executions.
+ * @return {String} Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
  */
 function mailMerge(
   draftMode = true,
@@ -533,14 +693,17 @@ function mailMerge(
   const localizedMessage = new LocalizedMessage(config.userLocale);
   // Designate name of fields without placeholders, i.e. values that can be skipped for the merge process later on
   const noPlaceholder = ['from', 'attachments', 'inLineImages', 'labels'];
-  // Save current settings in user property
   const userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty(UP_KEY_PREV_CONFIG, JSON.stringify(config));
+  // Save current settings in user property
+  userProperties.setProperty(
+    UP_KEY_PREV_MAIL_MERGE_CONFIG,
+    JSON.stringify(config)
+  );
   let debugInfo = {
     completedRecipients: [],
     config: config,
     draftMode: draftMode,
-    exeRounds: isTimeTriggered ? prevProperties.exeRounds : 0,
+    exeRoundsMailMerge: isTimeTriggered ? prevProperties.exeRoundsMailMerge : 0,
     prevCompletedRecipients: isTimeTriggered
       ? prevProperties.completedRecipients
       : [],
@@ -783,7 +946,7 @@ function mailMerge(
             completedRecipients: JSON.stringify(debugInfo.completedRecipients),
             createdDraftIds: JSON.stringify(createdDraftIds),
             draftMode: draftMode,
-            exeRounds: debugInfo.exeRounds,
+            exeRoundsMailMerge: debugInfo.exeRoundsMailMerge,
             templateDraftIds: JSON.stringify(templateDraftIds),
           },
           false
@@ -796,7 +959,7 @@ function mailMerge(
             .timeBased()
             .after(EXECUTE_TRIGGER_AFTER)
             .create();
-        } else if (debugInfo.exeRounds == 1) {
+        } else if (debugInfo.exeRoundsMailMerge == 1) {
           // If this is executed on a time-based trigger for the first time,
           // create a new hourly trigger for further post-process.
           // Hourly, because Google places a limitation on
@@ -808,18 +971,18 @@ function mailMerge(
             .create();
         }
         debugInfo.processTime.push(
-          `Saved property and set trigger for post-process at ${
+          `Saved property and trigger set for post-process at ${
             new Date().getTime() - debugInfo.start
           } (millisec from start)`
         );
         let notificationMessage = isTimeTriggered
-          ? localizedMessage.replaceContinuingPostProcess(
+          ? localizedMessage.replaceContinuingPostProcessMailMerge(
               APPS_SCRIPT_TIME_LIMIT / 1000,
               myEmail,
               draftMode,
               debugInfo.completedRecipients.length
             )
-          : localizedMessage.replaceProceedingToPostProcess(
+          : localizedMessage.replaceProceedingToPostProcessMailMerge(
               ADDON_TIME_LIMIT / 1000,
               myEmail,
               draftMode,
@@ -843,20 +1006,17 @@ function mailMerge(
       );
     }
   } catch (error) {
-    let knownErrorMessages = [];
-    for (let k in localizedMessage.messageList) {
-      if (!k.startsWith('error')) {
-        continue;
-      }
-      knownErrorMessages.push(localizedMessage.messageList[k]);
-    }
+    let knownErrorMessages = getKnownErrorMessages_(config.userLocale);
     if (
       knownErrorMessages.includes(error.message) ||
       error.message.startsWith(
-        localizedMessage.messageList.proceedingToPostProcess.slice(0, 10)
+        localizedMessage.messageList.proceedingToPostProcessMailMerge.slice(
+          0,
+          10
+        )
       ) ||
       error.message.startsWith(
-        localizedMessage.messageList.continuingPostProcess.slice(0, 10)
+        localizedMessage.messageList.continuingPostProcessMailMerge.slice(0, 10)
       )
     ) {
       cardMessage = error.message;
@@ -906,14 +1066,14 @@ function mailMerge(
  * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
  */
 function postProcessMailMerge() {
-  var userPropertiesValues =
+  const userPropertiesValues =
     PropertiesService.getUserProperties().getProperties();
-  var draftMode = userPropertiesValues['draftMode'] === 'true';
-  var config = JSON.parse(userPropertiesValues[UP_KEY_PREV_CONFIG]);
+  const draftMode = userPropertiesValues['draftMode'] === 'true';
+  let config = JSON.parse(userPropertiesValues[UP_KEY_PREV_MAIL_MERGE_CONFIG]);
   config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
   config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
-  var prevProperties = {
-    exeRounds: parseInt(userPropertiesValues.exeRounds) + 1,
+  const prevProperties = {
+    exeRoundsMailMerge: parseInt(userPropertiesValues.exeRoundsMailMerge) + 1,
     completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
     createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
     templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
@@ -1089,4 +1249,21 @@ function fillInTemplate_(template, data, options) {
     }
   }
   return messageData;
+}
+
+/**
+ * Get an array of all error messages
+ * @param {String} userLocale
+ * @returns {Array}
+ */
+function getKnownErrorMessages_(userLocale) {
+  const localizedMessage = new LocalizedMessage(userLocale);
+  let knownErrorMessages = [];
+  for (let k in localizedMessage.messageList) {
+    if (!k.startsWith('error')) {
+      continue;
+    }
+    knownErrorMessages.push(localizedMessage.messageList[k]);
+  }
+  return knownErrorMessages;
 }
