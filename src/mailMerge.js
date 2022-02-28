@@ -440,215 +440,6 @@ function createDraftEmails(event) {
 }
 
 /**
- * Send the drafts created by createDraftEmails()
- * @param {Object} event Google Workspace Add-on Event object.
- * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
- */
-function sendCreatedDrafts(event) {
-  const config = parseConfig_(event);
-  return createMessageCard(sendDrafts(config), config.userLocale);
-}
-
-/**
- * The core function for sendCreatedDrafts
- * @param {Object} config Object returned by parseConfig_(eventObj)
- * @param {Object} prevProperties Properties handed over from the original mail merge process. Required on triggered executions.
- * @returns {String}  Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
- */
-function sendDrafts(config, prevProperties = {}) {
-  // Determine whether this script is executed manually or by a time-trigger
-  const isTimeTriggered = Object.keys(prevProperties).length > 0;
-  const executionTimeThreshold = isTimeTriggered
-    ? APPS_SCRIPT_TIME_LIMIT - APPS_SCRIPT_TIME_LIMIT_OFFSET
-    : ADDON_TIME_LIMIT - ADDON_TIME_LIMIT_OFFSET;
-  const myEmail = Session.getActiveUser().getEmail();
-  const localizedMessage = new LocalizedMessage(config.userLocale);
-  const userProperties = PropertiesService.getUserProperties();
-  // Save current settings in user property
-  userProperties.setProperty(
-    UP_KEY_PREV_SEND_DRAFTS_CONFIG,
-    JSON.stringify(config)
-  );
-  let debugInfo = {
-    config: config,
-    exeRoundsSendDrafts: isTimeTriggered
-      ? prevProperties.exeRoundsSendDrafts
-      : 0,
-    processTime: [],
-    start: new Date().getTime(),
-  };
-  let cardMessage = '';
-  try {
-    let messageCount = 0;
-    if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
-      // Confirmation before sending email
-      var ui = SpreadsheetApp.getUi();
-      let answer = ui.alert(
-        localizedMessage.replaceConfirmSendingOfDraft(myEmail),
-        ui.ButtonSet.OK_CANCEL
-      );
-      if (answer !== ui.Button.OK) {
-        throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
-      }
-    }
-    // Get the values of createdDraftIds, the string of draft IDs to send, stored in the user property
-    let createdDraftIds = isTimeTriggered
-      ? prevProperties.createdDraftIds
-      : JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
-    if (!createdDraftIds || createdDraftIds.length == 0) {
-      // Throw error if no draft ID is stored.
-      throw new Error(localizedMessage.messageList.errorNoDraftToSend);
-    }
-    // Send emails
-    let drafts = GmailApp.getDrafts();
-    debugInfo.processTime.push(
-      `Retrieved Gmail drafts at ${
-        new Date().getTime() - debugInfo.start
-      } (millisec from start)`
-    );
-    for (let i = 0; i < drafts.length; i++) {
-      let draft = drafts[i];
-      let draftId = draft.getId();
-      let isSent = false;
-      if (createdDraftIds.includes(draftId)) {
-        draft.send();
-        messageCount += 1;
-        isSent = true;
-        createdDraftIds = createdDraftIds.filter((id) => id !== draftId);
-      }
-      // Determine current process time lapse.
-      let timeElapsed = new Date().getTime() - debugInfo.start;
-      debugInfo.processTime.push(
-        `Draft (ID: ${draftId}) ${
-          isSent ? 'sent' : 'checked'
-        } at ${timeElapsed} (millisec from start)`
-      );
-      if (timeElapsed >= executionTimeThreshold) {
-        // If the script execution time has passed more than executionTimeThreshold,
-        // break the process to complete by execution on time-based triggers.
-        userProperties.setProperties(
-          {
-            createdDraftIds: JSON.stringify(createdDraftIds),
-            exeRoundsSendDrafts: debugInfo.exeRoundsSendDrafts,
-          },
-          false
-        );
-        if (!isTimeTriggered) {
-          // If this is the first execution of sendDrafts,
-          // i.e, it this is manually executed, and not triggered,
-          // create a new time-based trigger
-          ScriptApp.newTrigger('postProcessSendDrafts')
-            .timeBased()
-            .after(EXECUTE_TRIGGER_AFTER)
-            .create();
-        } else if (debugInfo.exeRoundsSendDrafts == 1) {
-          // If this is executed on a time-based trigger for the first time,
-          // create a new hourly trigger for further post-process.
-          // Hourly, because Google places a limitation on
-          // the recurrence interval for an Add-on trigger;
-          // it must be at least one hour.
-          ScriptApp.newTrigger('postProcessSendDrafts')
-            .timeBased()
-            .everyHours(1)
-            .create();
-        }
-        debugInfo.processTime.push(
-          `Saved property and trigger set for post-process at ${
-            new Date().getTime() - debugInfo.start
-          } (millisec from start)`
-        );
-        let notificationMessage = isTimeTriggered
-          ? localizedMessage.replaceContinuingPostProcessSendDrafts(
-              APPS_SCRIPT_TIME_LIMIT / 1000,
-              myEmail,
-              messageCount
-            )
-          : localizedMessage.replaceProceedingToPostProcessSendDrafts(
-              ADDON_TIME_LIMIT / 1000,
-              myEmail,
-              messageCount
-            );
-        throw new Error(notificationMessage);
-      }
-    }
-    // Empty createdDraftIds
-    createdDraftIds = [];
-    userProperties.setProperty(
-      UP_KEY_CREATED_DRAFT_IDS,
-      JSON.stringify(createdDraftIds)
-    );
-    cardMessage = localizedMessage.replaceCompleteMessage(false, messageCount);
-    // Delete time-based triggers
-    if (isTimeTriggered) {
-      ScriptApp.getProjectTriggers().forEach((trigger) =>
-        ScriptApp.deleteTrigger(trigger)
-      );
-    }
-  } catch (error) {
-    let knownErrorMessages = getKnownErrorMessages_(config.userLocale);
-    if (
-      knownErrorMessages.includes(error.message) ||
-      error.message.startsWith(
-        localizedMessage.messageList.proceedingToPostProcessSendDrafts.slice(
-          0,
-          10
-        )
-      ) ||
-      error.message.startsWith(
-        localizedMessage.messageList.continuingPostProcessSendDrafts.slice(
-          0,
-          10
-        )
-      )
-    ) {
-      cardMessage = error.message;
-    } else {
-      cardMessage =
-        localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
-    }
-  }
-  if (config.ENABLE_DEBUG_MODE) {
-    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
-    for (let k in debugInfo) {
-      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
-    }
-    MailApp.sendEmail(
-      myEmail,
-      `[GROUP MERGE] Debug Info`,
-      `${cardMessage}\n\n${debugInfoText}`
-    );
-    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
-  }
-  if (isTimeTriggered) {
-    MailApp.sendEmail(
-      myEmail,
-      localizedMessage.messageList.subjectPostProcessUpdate,
-      cardMessage
-    );
-  }
-  return cardMessage;
-}
-
-/**
- * Post-process for sendDrafts(); continues the process of sending created drafts
- * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
- */
-function postProcessSendDrafts() {
-  const userPropertiesValues =
-    PropertiesService.getUserProperties().getProperties();
-  let config = JSON.parse(userPropertiesValues[UP_KEY_PREV_SEND_DRAFTS_CONFIG]);
-  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
-  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
-  const prevProperties = {
-    exeRoundsSendDrafts: parseInt(userPropertiesValues.exeRoundsSendDrafts) + 1,
-    // completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
-    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
-    // templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
-  };
-  sendDrafts(config, prevProperties);
-}
-
-/**
  * Send personalized email(s)
  * @param {Object} event Google Workspace Add-on Event object.
  * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
@@ -1069,6 +860,215 @@ function postProcessMailMerge() {
     templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
   };
   mailMerge(draftMode, config, prevProperties);
+}
+
+/**
+ * Send the drafts created by createDraftEmails()
+ * @param {Object} event Google Workspace Add-on Event object.
+ * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
+ */
+function sendCreatedDrafts(event) {
+  const config = parseConfig_(event);
+  return createMessageCard(sendDrafts(config), config.userLocale);
+}
+
+/**
+ * The core function for sendCreatedDrafts
+ * @param {Object} config Object returned by parseConfig_(eventObj)
+ * @param {Object} prevProperties Properties handed over from the original mail merge process. Required on triggered executions.
+ * @returns {String}  Message to display as the add-on card, be it an error message or a notification that the merge process is complete.
+ */
+function sendDrafts(config, prevProperties = {}) {
+  // Determine whether this script is executed manually or by a time-trigger
+  const isTimeTriggered = Object.keys(prevProperties).length > 0;
+  const executionTimeThreshold = isTimeTriggered
+    ? APPS_SCRIPT_TIME_LIMIT - APPS_SCRIPT_TIME_LIMIT_OFFSET
+    : ADDON_TIME_LIMIT - ADDON_TIME_LIMIT_OFFSET;
+  const myEmail = Session.getActiveUser().getEmail();
+  const localizedMessage = new LocalizedMessage(config.userLocale);
+  const userProperties = PropertiesService.getUserProperties();
+  // Save current settings in user property
+  userProperties.setProperty(
+    UP_KEY_PREV_SEND_DRAFTS_CONFIG,
+    JSON.stringify(config)
+  );
+  let debugInfo = {
+    config: config,
+    exeRoundsSendDrafts: isTimeTriggered
+      ? prevProperties.exeRoundsSendDrafts
+      : 0,
+    processTime: [],
+    start: new Date().getTime(),
+  };
+  let cardMessage = '';
+  try {
+    let messageCount = 0;
+    if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
+      // Confirmation before sending email
+      var ui = SpreadsheetApp.getUi();
+      let answer = ui.alert(
+        localizedMessage.replaceConfirmSendingOfDraft(myEmail),
+        ui.ButtonSet.OK_CANCEL
+      );
+      if (answer !== ui.Button.OK) {
+        throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
+      }
+    }
+    // Get the values of createdDraftIds, the string of draft IDs to send, stored in the user property
+    let createdDraftIds = isTimeTriggered
+      ? prevProperties.createdDraftIds
+      : JSON.parse(userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS));
+    if (!createdDraftIds || createdDraftIds.length == 0) {
+      // Throw error if no draft ID is stored.
+      throw new Error(localizedMessage.messageList.errorNoDraftToSend);
+    }
+    // Send emails
+    let drafts = GmailApp.getDrafts();
+    debugInfo.processTime.push(
+      `Retrieved Gmail drafts at ${
+        new Date().getTime() - debugInfo.start
+      } (millisec from start)`
+    );
+    for (let i = 0; i < drafts.length; i++) {
+      let draft = drafts[i];
+      let draftId = draft.getId();
+      let isSent = false;
+      if (createdDraftIds.includes(draftId)) {
+        draft.send();
+        messageCount += 1;
+        isSent = true;
+        createdDraftIds = createdDraftIds.filter((id) => id !== draftId);
+      }
+      // Determine current process time lapse.
+      let timeElapsed = new Date().getTime() - debugInfo.start;
+      debugInfo.processTime.push(
+        `Draft (ID: ${draftId}) ${
+          isSent ? 'sent' : 'checked'
+        } at ${timeElapsed} (millisec from start)`
+      );
+      if (timeElapsed >= executionTimeThreshold) {
+        // If the script execution time has passed more than executionTimeThreshold,
+        // break the process to complete by execution on time-based triggers.
+        userProperties.setProperties(
+          {
+            createdDraftIds: JSON.stringify(createdDraftIds),
+            exeRoundsSendDrafts: debugInfo.exeRoundsSendDrafts,
+          },
+          false
+        );
+        if (!isTimeTriggered) {
+          // If this is the first execution of sendDrafts,
+          // i.e, it this is manually executed, and not triggered,
+          // create a new time-based trigger
+          ScriptApp.newTrigger('postProcessSendDrafts')
+            .timeBased()
+            .after(EXECUTE_TRIGGER_AFTER)
+            .create();
+        } else if (debugInfo.exeRoundsSendDrafts == 1) {
+          // If this is executed on a time-based trigger for the first time,
+          // create a new hourly trigger for further post-process.
+          // Hourly, because Google places a limitation on
+          // the recurrence interval for an Add-on trigger;
+          // it must be at least one hour.
+          ScriptApp.newTrigger('postProcessSendDrafts')
+            .timeBased()
+            .everyHours(1)
+            .create();
+        }
+        debugInfo.processTime.push(
+          `Saved property and trigger set for post-process at ${
+            new Date().getTime() - debugInfo.start
+          } (millisec from start)`
+        );
+        let notificationMessage = isTimeTriggered
+          ? localizedMessage.replaceContinuingPostProcessSendDrafts(
+              APPS_SCRIPT_TIME_LIMIT / 1000,
+              myEmail,
+              messageCount
+            )
+          : localizedMessage.replaceProceedingToPostProcessSendDrafts(
+              ADDON_TIME_LIMIT / 1000,
+              myEmail,
+              messageCount
+            );
+        throw new Error(notificationMessage);
+      }
+    }
+    // Empty createdDraftIds
+    createdDraftIds = [];
+    userProperties.setProperty(
+      UP_KEY_CREATED_DRAFT_IDS,
+      JSON.stringify(createdDraftIds)
+    );
+    cardMessage = localizedMessage.replaceCompleteMessage(false, messageCount);
+    // Delete time-based triggers
+    if (isTimeTriggered) {
+      ScriptApp.getProjectTriggers().forEach((trigger) =>
+        ScriptApp.deleteTrigger(trigger)
+      );
+    }
+  } catch (error) {
+    let knownErrorMessages = getKnownErrorMessages_(config.userLocale);
+    if (
+      knownErrorMessages.includes(error.message) ||
+      error.message.startsWith(
+        localizedMessage.messageList.proceedingToPostProcessSendDrafts.slice(
+          0,
+          10
+        )
+      ) ||
+      error.message.startsWith(
+        localizedMessage.messageList.continuingPostProcessSendDrafts.slice(
+          0,
+          10
+        )
+      )
+    ) {
+      cardMessage = error.message;
+    } else {
+      cardMessage =
+        localizedMessage.messageList.cardMessageUnexpectedError + error.stack;
+    }
+  }
+  if (config.ENABLE_DEBUG_MODE) {
+    let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
+    for (let k in debugInfo) {
+      debugInfoText += `${k}: ${JSON.stringify(debugInfo[k])}\n`;
+    }
+    MailApp.sendEmail(
+      myEmail,
+      `[GROUP MERGE] Debug Info`,
+      `${cardMessage}\n\n${debugInfoText}`
+    );
+    cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
+  }
+  if (isTimeTriggered) {
+    MailApp.sendEmail(
+      myEmail,
+      localizedMessage.messageList.subjectPostProcessUpdate,
+      cardMessage
+    );
+  }
+  return cardMessage;
+}
+
+/**
+ * Post-process for sendDrafts(); continues the process of sending created drafts
+ * for executions that are expected to exceed the Google Workspace Add-ons' 30-second time limit.
+ */
+function postProcessSendDrafts() {
+  const userPropertiesValues =
+    PropertiesService.getUserProperties().getProperties();
+  let config = JSON.parse(userPropertiesValues[UP_KEY_PREV_SEND_DRAFTS_CONFIG]);
+  config.MERGE_FIELD_MARKER = new RegExp(config.MERGE_FIELD_MARKER_TEXT, 'g');
+  config.GROUP_FIELD_MARKER = new RegExp(config.GROUP_FIELD_MARKER_TEXT, 'g');
+  const prevProperties = {
+    exeRoundsSendDrafts: parseInt(userPropertiesValues.exeRoundsSendDrafts) + 1,
+    // completedRecipients: JSON.parse(userPropertiesValues.completedRecipients),
+    createdDraftIds: JSON.parse(userPropertiesValues.createdDraftIds),
+    // templateDraftIds: JSON.parse(userPropertiesValues.templateDraftIds),
+  };
+  sendDrafts(config, prevProperties);
 }
 
 /**
