@@ -14,8 +14,6 @@
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
-/* global LocalizedMessage */
-
 //////////////////////
 // Global Variables //
 //////////////////////
@@ -1259,6 +1257,7 @@ function getKnownErrorMessages_(userLocale) {
 }
 
 if (typeof module === 'object') {
+  var { LocalizedMessage } = require('../src/i18n');
   module.exports = {
     buildHomepage,
     buildHomepageRestoreDefault,
