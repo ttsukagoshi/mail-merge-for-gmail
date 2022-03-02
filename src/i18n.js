@@ -438,5 +438,5 @@ class LocalizedMessage {
 }
 
 if (typeof module === 'object') {
-  module.exports = { LocalizedMessage };
+  module.exports = { LocalizedMessage, MESSAGES };
 }
