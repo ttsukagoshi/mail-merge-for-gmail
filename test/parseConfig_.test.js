@@ -14,7 +14,7 @@ const mockEvents = [
       ENABLE_REPLY_TO: false,
       REPLY_TO: 'replyTo@email.com',
       REPLACE_VALUE: 'NA',
-      MERGE_FIELD_MARKER: /\{\{([^\}]+)\}\}/g,
+      MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g,
       MERGE_FIELD_MARKER_TEXT: '\\{\\{([^\\}]+)\\}\\}',
       GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g,
       GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
