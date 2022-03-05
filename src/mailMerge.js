@@ -453,7 +453,7 @@ const DEFAULT_CONFIG = {
   BCC: '',
   TEMPLATE_SUBJECT: '', // 'Enter subject here'
   REPLACE_VALUE: 'NA',
-  MERGE_FIELD_MARKER_TEXT: '\\{\\{([^\\}]+)\\}\\}',
+  MERGE_FIELD_MARKER_TEXT: '\\{\\{([^}]+)\\}\\}',
   MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g, // deprecated
   ENABLE_GROUP_MERGE: true,
   GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
