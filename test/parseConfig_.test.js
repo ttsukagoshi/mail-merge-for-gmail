@@ -1,4 +1,4 @@
-const mailMerge = require('../src/mailMerge');
+const groupMerge = require('../src/group-merge');
 const mockEvents = [
   {
     eventTitle: 'Default settings',
@@ -174,7 +174,7 @@ const mockEvents = [
 
 mockEvents.forEach((mockEvent) => {
   test(mockEvent.eventTitle, () => {
-    expect(mailMerge.parseConfig_(mockEvent.event)).toEqual(
+    expect(groupMerge.parseConfig_(mockEvent.event)).toEqual(
       mockEvent.expectedConfig
     );
   });

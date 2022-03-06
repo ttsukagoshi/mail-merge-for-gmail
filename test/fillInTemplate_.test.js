@@ -1,4 +1,4 @@
-const mailMerge = require('../src/mailMerge');
+const groupMerge = require('../src/group-merge');
 const testTemplate = {
   testBodyTemplateWithGroupMerge:
     '[Body]\n\n[[\nEntry Number: {{i}}\nEmail: {{Email}}\nName: {{Name}}\n]]',
@@ -53,7 +53,7 @@ const patterns = [
 patterns.forEach((pattern) => {
   test(pattern.testTitle, () => {
     expect(
-      mailMerge.fillInTemplate_(testTemplate, pattern.groupedMergeData_k, {
+      groupMerge.fillInTemplate_(testTemplate, pattern.groupedMergeData_k, {
         enableGroupMerge: pattern.enableGroupMerge,
       })
     ).toEqual(pattern.expectedOutput);

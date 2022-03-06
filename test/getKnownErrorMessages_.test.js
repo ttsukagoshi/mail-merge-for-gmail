@@ -1,10 +1,10 @@
-const mailMerge = require('../src/mailMerge');
+const groupMerge = require('../src/group-merge');
 
-Object.keys(mailMerge.MESSAGES).forEach((locale) => {
-  let matchArray = Object.keys(mailMerge.MESSAGES[locale])
+Object.keys(groupMerge.MESSAGES).forEach((locale) => {
+  let matchArray = Object.keys(groupMerge.MESSAGES[locale])
     .filter((messageKey) => messageKey.slice(0, 5) === 'error')
-    .map((key) => mailMerge.MESSAGES[locale][key]);
+    .map((key) => groupMerge.MESSAGES[locale][key]);
   test('getKnownErrorMessages_', () => {
-    expect(mailMerge.getKnownErrorMessages_(locale)).toEqual(matchArray);
+    expect(groupMerge.getKnownErrorMessages_(locale)).toEqual(matchArray);
   });
 });
