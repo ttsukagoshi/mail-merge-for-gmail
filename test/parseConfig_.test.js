@@ -15,7 +15,7 @@ const mockEvents = [
       REPLY_TO: 'replyTo@email.com',
       REPLACE_VALUE: 'NA',
       MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g,
-      MERGE_FIELD_MARKER_TEXT: '\\{\\{([^\\}]+)\\}\\}',
+      MERGE_FIELD_MARKER_TEXT: '\\{\\{([^}]+)\\}\\}',
       GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g,
       GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
       ROW_INDEX_MARKER: '{{i}}',
@@ -32,7 +32,7 @@ const mockEvents = [
             stringInputs: { value: ['\\[\\[([^\\]]+)\\]\\]'] },
           },
           MERGE_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\{\\{([^\\}]+)\\}\\}'] },
+            stringInputs: { value: ['\\{\\{([^}]+)\\}\\}'] },
           },
           REPLY_TO: { stringInputs: { value: ['replyTo@email.com'] } },
           REPLACE_VALUE: { stringInputs: { value: ['NA'] } },

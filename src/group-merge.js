@@ -1685,6 +1685,7 @@ function getKnownErrorMessages_(userLocale) {
 if (typeof module === 'object') {
   module.exports = {
     MESSAGES,
+    DEFAULT_CONFIG,
     buildHomepage,
     buildHomepageRestoreDefault,
     buildHomepageRestoreUserConfig,
