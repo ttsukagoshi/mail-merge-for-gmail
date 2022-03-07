@@ -456,8 +456,8 @@ const DEFAULT_CONFIG = {
   MERGE_FIELD_MARKER_TEXT: '[{]{2}([^{^}]+)[}]{2}',
   MERGE_FIELD_MARKER: /[{]{2}([^{^}]+)[}]{2}/g, // deprecated
   ENABLE_GROUP_MERGE: true,
-  GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
-  GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g, // deprecated
+  GROUP_FIELD_MARKER_TEXT: '[[]{2}([^[^\\]]+)[\\]]{2}',
+  GROUP_FIELD_MARKER: /[[]{2}([^[^\]]+)[\]]{2}/g, // deprecated
   ROW_INDEX_MARKER: '{{i}}',
   ENABLE_REPLY_TO: false,
   REPLY_TO: 'replyTo@email.com',
