@@ -12,6 +12,7 @@ env:
   browser: true
   es6: true
   jest: true
+  node: true
 
 ###############
 # Global Vars #
@@ -44,7 +45,7 @@ globals:
 parser: '@typescript-eslint/parser'
 parserOptions:
   ecmaVersion: 2018
-  sourceType: script
+  sourceType: module
 
 ###########
 # Plugins #
