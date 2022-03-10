@@ -7,10 +7,10 @@ const mockConfigs = [
         formInputs: {
           DATA_SHEET_NAME: { stringInputs: { value: ['demo sheet name 123'] } },
           GROUP_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\[\\[([^\\]]+)\\]\\]'] },
+            stringInputs: { value: ['[[]{2}([^[^\\]]+)[\\]]{2}'] },
           },
           MERGE_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\{\\{([^}]+)\\}\\}'] },
+            stringInputs: { value: ['[{]{2}([^{^}]+)[}]{2}'] },
           },
           REPLY_TO: { stringInputs: { value: ['replyTo@email.com'] } },
           REPLACE_VALUE: { stringInputs: { value: ['NA'] } },
@@ -42,10 +42,10 @@ const mockConfigs = [
       ENABLE_REPLY_TO: false,
       REPLY_TO: 'replyTo@email.com',
       REPLACE_VALUE: 'NA',
-      MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g,
-      MERGE_FIELD_MARKER_TEXT: '\\{\\{([^}]+)\\}\\}',
-      GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g,
-      GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
+      MERGE_FIELD_MARKER: /[{]{2}([^{^}]+)[}]{2}/g,
+      MERGE_FIELD_MARKER_TEXT: '[{]{2}([^{^}]+)[}]{2}',
+      GROUP_FIELD_MARKER: /[[]{2}([^[^\]]+)[\]]{2}/g,
+      GROUP_FIELD_MARKER_TEXT: '[[]{2}([^[^\\]]+)[\\]]{2}',
       ROW_INDEX_MARKER: '{{i}}',
       ENABLE_DEBUG_MODE: false,
       hostApp: 'GMAIL',
@@ -65,7 +65,7 @@ const mockConfigs = [
             stringInputs: { value: ['test draft demo {{Name}}'] },
           },
           MERGE_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\{\\{([^}]+)\\}\\}'] },
+            stringInputs: { value: ['[{]{2}([^{^}]+)[}]{2}'] },
           },
           ENABLE_GROUP_MERGE: { stringInputs: { value: ['enabled'] } },
           ENABLE_REPLY_TO: { stringInputs: { value: ['enabled'] } },
@@ -73,7 +73,7 @@ const mockConfigs = [
           ROW_INDEX_MARKER: { stringInputs: { value: ['{{i}}'] } },
           CC: { stringInputs: { value: ['{{cc}}'] } },
           GROUP_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\[\\[([^\\]]+)\\]\\]'] },
+            stringInputs: { value: ['[[]{2}([^[^\\]]+)[\\]]{2}'] },
           },
           TO: { stringInputs: { value: ['{{Email}}'] } },
           SPREADSHEET_URL: {
@@ -102,10 +102,10 @@ const mockConfigs = [
       ENABLE_REPLY_TO: true,
       REPLY_TO: 'replyTo@email.com',
       REPLACE_VALUE: 'NA',
-      MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g,
-      MERGE_FIELD_MARKER_TEXT: '\\{\\{([^}]+)\\}\\}',
-      GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g,
-      GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
+      MERGE_FIELD_MARKER: /[{]{2}([^{^}]+)[}]{2}/g,
+      MERGE_FIELD_MARKER_TEXT: '[{]{2}([^{^}]+)[}]{2}',
+      GROUP_FIELD_MARKER: /[[]{2}([^[^\]]+)[\]]{2}/g,
+      GROUP_FIELD_MARKER_TEXT: '[[]{2}([^[^\\]]+)[\\]]{2}',
       ROW_INDEX_MARKER: '{{i}}',
       ENABLE_DEBUG_MODE: true,
       hostApp: 'GMAIL',
@@ -124,7 +124,7 @@ const mockConfigs = [
             stringInputs: { value: ['test draft demo {{Name}}'] },
           },
           MERGE_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\{\\{([^}]+)\\}\\}'] },
+            stringInputs: { value: ['[{]{2}([^{^}]+)[}]{2}'] },
           },
           SPREADSHEET_URL: {
             stringInputs: {
@@ -134,7 +134,7 @@ const mockConfigs = [
             },
           },
           GROUP_FIELD_MARKER_TEXT: {
-            stringInputs: { value: ['\\[\\[([^\\]]+)\\]\\]'] },
+            stringInputs: { value: ['[[]{2}([^[^\\]]+)[\\]]{2}'] },
           },
           BCC: { stringInputs: { value: ['{{bcc}}'] } },
           TO: { stringInputs: { value: ['{{Email}}'] } },
@@ -159,10 +159,10 @@ const mockConfigs = [
       ENABLE_REPLY_TO: false,
       REPLY_TO: 'replyTo@email.com',
       REPLACE_VALUE: 'NA',
-      MERGE_FIELD_MARKER: /\{\{([^}]+)\}\}/g,
-      MERGE_FIELD_MARKER_TEXT: '\\{\\{([^}]+)\\}\\}',
-      GROUP_FIELD_MARKER: /\[\[([^\]]+)\]\]/g,
-      GROUP_FIELD_MARKER_TEXT: '\\[\\[([^\\]]+)\\]\\]',
+      MERGE_FIELD_MARKER: /[{]{2}([^{^}]+)[}]{2}/g,
+      MERGE_FIELD_MARKER_TEXT: '[{]{2}([^{^}]+)[}]{2}',
+      GROUP_FIELD_MARKER: /[[]{2}([^[^\]]+)[\]]{2}/g,
+      GROUP_FIELD_MARKER_TEXT: '[[]{2}([^[^\\]]+)[\\]]{2}',
       ROW_INDEX_MARKER: '{{i}}',
       ENABLE_DEBUG_MODE: false,
       hostApp: 'GMAIL',
