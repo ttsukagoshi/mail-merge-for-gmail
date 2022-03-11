@@ -832,15 +832,15 @@ function createMessageCard(message, userLocale) {
  * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function saveUserConfig(event) {
-  var config = parseConfig_(event);
+  const config = parseConfig_(event);
   // Save on user property
   PropertiesService.getUserProperties().setProperty(
     UP_KEY_USER_CONFIG,
     JSON.stringify(config)
   );
   // Construct complete message
-  var localizedMessage = new LocalizedMessage(config.userLocale);
-  var cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
+  const localizedMessage = new LocalizedMessage(config.userLocale);
+  let cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
   if (config.ENABLE_DEBUG_MODE) {
     for (let k in config) {
       cardMessage += `<b>${k}</b>: ${config[k]}\n`;
