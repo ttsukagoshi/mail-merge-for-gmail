@@ -242,6 +242,8 @@ class LocalizedMessage {
         this.locale = userLocale;
       } else if (availableLocales.includes(twoLetterUserLocale)) {
         this.locale = twoLetterUserLocale;
+      } else {
+        this.locale = this.DEFAULT_LOCALE;
       }
     } else {
       this.locale = this.DEFAULT_LOCALE;
