@@ -231,7 +231,21 @@ class LocalizedMessage {
    */
   constructor(userLocale) {
     this.DEFAULT_LOCALE = 'en';
-    this.locale = MESSAGES[userLocale] ? userLocale : this.DEFAULT_LOCALE;
+    if (userLocale.match(/^[a-z]{2}(-[A-Z]{2})?$/g)) {
+      // Event objects in Google Workspace Add-ons contain user locale info
+      // in the format two-letter ISO 639 language code (e.g., "en" and "ja")
+      // or with an additiona hyphen followed by ISO 3166 country/region code (e.g., "en-GB")
+      // https://developers.google.com/apps-script/add-ons/concepts/event-objects#common_event_object
+      let availableLocales = Object.keys(MESSAGES);
+      let twoLetterUserLocale = userLocale.slice(0, 2);
+      if (availableLocales.includes(userLocale)) {
+        this.locale = userLocale;
+      } else if (availableLocales.includes(twoLetterUserLocale)) {
+        this.locale = twoLetterUserLocale;
+      }
+    } else {
+      this.locale = this.DEFAULT_LOCALE;
+    }
     this.messageList = MESSAGES[this.locale];
     Object.keys(MESSAGES[this.DEFAULT_LOCALE]).forEach((key) => {
       if (!this.messageList[key]) {
@@ -832,15 +846,16 @@ function createMessageCard(message, userLocale) {
  * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function saveUserConfig(event) {
-  var config = parseConfig_(event);
+  console.log(JSON.stringify(event));
+  const config = parseConfig_(event);
   // Save on user property
   PropertiesService.getUserProperties().setProperty(
     UP_KEY_USER_CONFIG,
     JSON.stringify(config)
   );
   // Construct complete message
-  var localizedMessage = new LocalizedMessage(config.userLocale);
-  var cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
+  const localizedMessage = new LocalizedMessage(config.userLocale);
+  let cardMessage = localizedMessage.messageList.alertCompleteSavedUserConfig;
   if (config.ENABLE_DEBUG_MODE) {
     for (let k in config) {
       cardMessage += `<b>${k}</b>: ${config[k]}\n`;
