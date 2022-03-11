@@ -5,6 +5,51 @@ const mockConfigs = [
       commonEventObject: {
         userLocale: 'ja',
         formInputs: {
+          GROUP_FIELD_MARKER_TEXT: {
+            stringInputs: { value: ['[[]{2}([^[^\\]]+)[\\]]{2}'] },
+          },
+          MERGE_FIELD_MARKER_TEXT: {
+            stringInputs: { value: ['[{]{2}([^{^}]+)[}]{2}'] },
+          },
+          REPLY_TO: { stringInputs: { value: ['replyTo@email.com'] } },
+          REPLACE_VALUE: { stringInputs: { value: ['NA'] } },
+          ENABLE_GROUP_MERGE: { stringInputs: { value: ['enabled'] } },
+          ROW_INDEX_MARKER: { stringInputs: { value: ['{{i}}'] } },
+        },
+        timeZone: { offset: 32400000, id: 'Asia/Dili' },
+        hostApp: 'GMAIL',
+        platform: 'WEB',
+      },
+    },
+    parsedConfig: {
+      SPREADSHEET_URL: '',
+      DATA_SHEET_NAME: '',
+      TO: '',
+      CC: '',
+      BCC: '',
+      TEMPLATE_SUBJECT: '',
+      ENABLE_GROUP_MERGE: true,
+      ENABLE_REPLY_TO: false,
+      REPLY_TO: 'replyTo@email.com',
+      REPLACE_VALUE: 'NA',
+      MERGE_FIELD_MARKER: /[{]{2}([^{^}]+)[}]{2}/g,
+      MERGE_FIELD_MARKER_TEXT: '[{]{2}([^{^}]+)[}]{2}',
+      GROUP_FIELD_MARKER: /[[]{2}([^[^\]]+)[\]]{2}/g,
+      GROUP_FIELD_MARKER_TEXT: '[[]{2}([^[^\\]]+)[\\]]{2}',
+      ROW_INDEX_MARKER: '{{i}}',
+      ENABLE_DEBUG_MODE: false,
+      hostApp: 'GMAIL',
+      userLocale: 'ja',
+    },
+    mailMergeOutput: '',
+  },
+  {
+    eventName:
+      'Default settings with SPREADSHEET_URL, DATA_SHEET_NAME, and TO values',
+    addonEvent: {
+      commonEventObject: {
+        userLocale: 'ja',
+        formInputs: {
           DATA_SHEET_NAME: { stringInputs: { value: ['demo sheet name 123'] } },
           GROUP_FIELD_MARKER_TEXT: {
             stringInputs: { value: ['[[]{2}([^[^\\]]+)[\\]]{2}'] },
