@@ -26,6 +26,10 @@ Details of the add-on is described in the [app's web page](https://www.scriptabl
 
 You must agree to the [Terms and Conditions](https://www.scriptable-assets.page/terms-and-conditions/) (TaC) to use this add-on. The [disclosure on privacy and OAuth scopes](https://www.scriptable-assets.page/add-ons/group-merge/#disclosure-on-privacy-and-oauth-scopes) constitutes part of this TaC.
 
+## Contribute
+
+Contributions are welcome! Please see our [Contributing Guideline](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/docs/CONTRIBUTING.md) for details on how to contribute to this project.
+
 ## Attributes
 
 The original icon of this add-on was made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/) and its colors are modified to fit the theme color of the app.

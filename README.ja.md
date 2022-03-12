@@ -24,6 +24,10 @@ Gmail と Google スプレッドシートを使って、宛名や会議の日時
 
 本アドオンの使用には、[利用規約（英）](https://www.scriptable-assets.page/ja/add-ons/group-merge/#%E5%88%A9%E7%94%A8%E8%A6%8F%E7%B4%84)への同意が必要です。
 
+## 開発に参加
+
+オープンソースである本アドオン開発はどなたでも参加いただけます。[Contributing Guideline](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/docs/CONTRIBUTING.md) をご一読の上、ご参加ください！
+
 ## アイコンの出典
 
 The original icon of this add-on was made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/) and its colors are modified to fit the theme color of the app.
