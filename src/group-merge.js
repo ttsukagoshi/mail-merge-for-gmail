@@ -848,7 +848,6 @@ function createMessageCard(message, userLocale) {
  * @see https://developers.google.com/workspace/add-ons/concepts/event-objects
  */
 function saveUserConfig(event) {
-  console.log(JSON.stringify(event));
   const config = parseConfig_(event);
   // Save on user property
   PropertiesService.getUserProperties().setProperty(
