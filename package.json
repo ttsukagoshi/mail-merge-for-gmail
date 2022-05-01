@@ -29,7 +29,7 @@
   "homepage": "https://github.com/ttsukagoshi/mail-merge-for-gmail#readme",
   "devDependencies": {
     "@google/clasp": "^2.4.1",
-    "@types/google-apps-script": "^1.0.45",
+    "@types/google-apps-script": "^1.0.46",
     "@typescript-eslint/eslint-plugin": "^5.21.0",
     "@typescript-eslint/parser": "^5.21.0",
     "eslint": "^8.14.0",
