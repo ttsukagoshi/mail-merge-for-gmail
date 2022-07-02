@@ -1,5 +1,5 @@
 const groupMerge = require('../src/group-merge');
-const { mockConfigs } = require('./mock-configs');
+const { mockConfigs } = require('../src/__mocks__/mock-configs');
 
 mockConfigs.forEach((mockConfig) => {
   test(mockConfig.eventName, () => {

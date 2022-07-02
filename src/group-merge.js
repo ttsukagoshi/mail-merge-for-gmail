@@ -14,6 +14,20 @@
 //
 // See https://github.com/ttsukagoshi/mail-merge-for-gmail for latest information.
 
+//////////////////////////////////////
+// Mock classes for testing on Jest //
+//////////////////////////////////////
+
+if (!PropertiesService) {
+  var { PropertiesService } = require('./__mocks__/propertiesservice');
+}
+if (!Session) {
+  var { Session } = require('./__mocks__/session');
+}
+if (!SpreadsheetApp) {
+  var { SpreadsheetApp } = require('./__mocks__/spreadsheetapp');
+}
+
 ///////////////////////////
 // Language Localization //
 ///////////////////////////
