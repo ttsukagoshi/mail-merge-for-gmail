@@ -1,6 +1,7 @@
 # Group Merge: Mail Merge for Gmail (English / [日本語](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/README.ja.md))
 
-[![Get this add-on from Google Workspace Marketplace](https://img.shields.io/badge/Google%20Workspace%20Add--on-Available-green?style=flat-square)](https://workspace.google.com/marketplace/app/group_merge_mail_merge_for_gmail/586770229603) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg?style=flat-square)](https://github.com/marketplace/actions/super-linter) [![clasp](https://img.shields.io/badge/built%20with-clasp-4285f4.svg?style=flat-square)](https://github.com/google/clasp) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![Get this add-on from Google Workspace Marketplace](https://img.shields.io/badge/Google%20Workspace%20Add--on-Available-green?style=flat-square)](https://workspace.google.com/marketplace/app/group_merge_mail_merge_for_gmail/586770229603) [![clasp](https://img.shields.io/badge/built%20with-clasp-4285f4.svg?style=flat-square)](https://github.com/google/clasp) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)  
+[![CodeQL](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/codeql-analysis.yml) [![Deploy](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/deploy.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/deploy.yml) [![Labeler](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/label.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/label.yml) [![Lint Code Base](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/linter.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/linter.yml)
 
 An open-sourced Google Workspace Add-on to send personalized emails based on Gmail template to multiple recipients using Google Sheets. The **Group Merge** feature allows the sender to group the contents of two or more rows into one row for a single recipient.
 
@@ -24,6 +25,10 @@ Details of the add-on is described in the [app's web page](https://www.scriptabl
 ## Terms and Conditions
 
 You must agree to the [Terms and Conditions](https://www.scriptable-assets.page/terms-and-conditions/) (TaC) to use this add-on. The [disclosure on privacy and OAuth scopes](https://www.scriptable-assets.page/add-ons/group-merge/#disclosure-on-privacy-and-oauth-scopes) constitutes part of this TaC.
+
+## Contribute
+
+Contributions are welcome! Please see our [Contributing Guideline](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/docs/CONTRIBUTING.md) for details on how to contribute to this project.
 
 ## Attributes
 

@@ -1,6 +1,16 @@
 {
-    "editor.formatOnSave": true,
-    "files.eol": "\n",
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "json.schemas": [
+    {
+      "fileMatch": ["appsscript.json"],
+      "url": "http://json.schemastore.org/appsscript"
+    },
+    {
+      "fileMatch": [".clasp.json"],
+      "url": "http://json.schemastore.org/clasp"
+    }
+  ]
 }

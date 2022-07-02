@@ -1,6 +1,7 @@
 # Group Merge: Gmail のための差し込みメール作成 ([English](https://github.com/ttsukagoshi/mail-merge-for-gmail) / 日本語)
 
-[![Google Workspaceマーケットプレイスでこのアドオンを入手する](https://img.shields.io/badge/Google%20Workspace%20Add--on-Available-green?style=flat-square)](https://workspace.google.com/marketplace/app/group_merge_mail_merge_for_gmail/586770229603) [![GitHub Super-Linter](https://github.com/ttsukagoshi/mail-merge-for-gmail/workflows/Lint%20Code%20Base/badge.svg?style=flat-square)](https://github.com/marketplace/actions/super-linter) [![clasp](https://img.shields.io/badge/built%20with-clasp-4285f4.svg?style=flat-square)](https://github.com/google/clasp) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![Get this add-on from Google Workspace Marketplace](https://img.shields.io/badge/Google%20Workspace%20Add--on-Available-green?style=flat-square)](https://workspace.google.com/marketplace/app/group_merge_mail_merge_for_gmail/586770229603) [![clasp](https://img.shields.io/badge/built%20with-clasp-4285f4.svg?style=flat-square)](https://github.com/google/clasp) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)  
+[![CodeQL](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/codeql-analysis.yml) [![Deploy](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/deploy.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/deploy.yml) [![Labeler](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/label.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/label.yml) [![Lint Code Base](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/linter.yml/badge.svg)](https://github.com/ttsukagoshi/mail-merge-for-gmail/actions/workflows/linter.yml)
 
 Gmail と Google スプレッドシートを使って、受信者一人ひとり向けに宛名などを差し込んで作成。宛先リストで、宛先（メールアドレス）に重複がある場合、内容を 1 通のメールにまとめて送信できる **「まとめ差し込み（Group Merge）」** 機能つき。
 
@@ -22,6 +23,10 @@ Gmail と Google スプレッドシートを使って、宛名や会議の日時
 ## 利用規約
 
 本アドオンの使用には、[利用規約（英）](https://www.scriptable-assets.page/ja/add-ons/group-merge/#%E5%88%A9%E7%94%A8%E8%A6%8F%E7%B4%84)への同意が必要です。
+
+## 開発に参加
+
+オープンソースである本アドオン開発はどなたでも参加いただけます。[Contributing Guideline](https://github.com/ttsukagoshi/mail-merge-for-gmail/blob/main/docs/CONTRIBUTING.md) をご一読の上、ご参加ください！
 
 ## アイコンの出典
 
