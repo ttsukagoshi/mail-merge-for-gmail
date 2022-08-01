@@ -32,7 +32,7 @@
     "@types/google-apps-script": "^1.0.49",
     "@typescript-eslint/eslint-plugin": "^5.30.0",
     "@typescript-eslint/parser": "^5.30.0",
-    "eslint": "^8.18.0",
+    "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.4.0",
     "eslint-plugin-prettier": "^4.2.1",
     "jest": "^28.1.2",
