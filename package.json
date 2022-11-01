@@ -31,7 +31,7 @@
     "@google/clasp": "^2.4.2",
     "@types/google-apps-script": "^1.0.55",
     "@typescript-eslint/eslint-plugin": "^5.39.0",
-    "@typescript-eslint/parser": "^5.39.0",
+    "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",
     "eslint-config-prettier": "^8.4.0",
     "eslint-plugin-prettier": "^4.2.1",
