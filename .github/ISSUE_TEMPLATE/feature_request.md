@@ -1,10 +1,9 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "[NEW FEAT]"
+title: '[NEW FEAT]'
 labels: enhancement
 assignees: ttsukagoshi
-
 ---
 
 **Is your feature request related to a problem? Please describe.**
