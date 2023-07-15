@@ -1,5 +1,5 @@
 name: Accessibility-alt-text-bot
-on: 
+on:
   issues:
     types: [opened, edited]
   pull_request:
@@ -24,4 +24,3 @@ jobs:
     steps:
       - name: Get action 'github/accessibility-alt-text-bot'
         uses: github/accessibility-alt-text-bot@v1.2.0
-        
