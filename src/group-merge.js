@@ -264,7 +264,7 @@ class LocalizedMessage {
   replacePlaceholders_(text, placeholderValues = []) {
     let replacedText = placeholderValues.reduce(
       (acc, cur) => acc.replace(new RegExp(cur.regexp, 'g'), cur.value),
-      text
+      text,
     );
     return replacedText;
   }
@@ -334,7 +334,7 @@ class LocalizedMessage {
     actionLimitTimeInSec,
     myEmail,
     draftMode,
-    messageCount
+    messageCount,
   ) {
     let text = this.messageList.proceedingToPostProcessMailMerge;
     let placeholderValues = [
@@ -370,7 +370,7 @@ class LocalizedMessage {
     appsScriptLimitTimeInSec,
     myEmail,
     draftMode,
-    messageCount
+    messageCount,
   ) {
     let text = this.messageList.continuingPostProcessMailMerge;
     let placeholderValues = [
@@ -404,7 +404,7 @@ class LocalizedMessage {
   replaceProceedingToPostProcessSendDrafts(
     actionLimitTimeInSec,
     myEmail,
-    messageCount
+    messageCount,
   ) {
     let text = this.messageList.proceedingToPostProcessSendDrafts;
     let placeholderValues = [
@@ -434,7 +434,7 @@ class LocalizedMessage {
   replaceContinuingPostProcessSendDrafts(
     appsScriptLimitTimeInSec,
     myEmail,
-    messageCount
+    messageCount,
   ) {
     let text = this.messageList.continuingPostProcessSendDrafts;
     let placeholderValues = [
@@ -509,7 +509,7 @@ function buildHomepage(event) {
   return createMailMergeCard(
     event.commonEventObject.userLocale,
     event.commonEventObject.hostApp,
-    config
+    config,
   );
 }
 
@@ -521,12 +521,12 @@ function buildHomepage(event) {
 function buildHomepageRestoreUserConfig(event) {
   var config =
     JSON.parse(
-      PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG)
+      PropertiesService.getUserProperties().getProperty(UP_KEY_USER_CONFIG),
     ) || DEFAULT_CONFIG;
   return createMailMergeCard(
     event.commonEventObject.userLocale,
     event.commonEventObject.hostApp,
-    config
+    config,
   );
 }
 
@@ -542,7 +542,7 @@ function buildHomepageRestoreDefault(event) {
   return createMailMergeCard(
     event.commonEventObject.userLocale,
     event.commonEventObject.hostApp,
-    DEFAULT_CONFIG
+    DEFAULT_CONFIG,
   );
 }
 
@@ -559,7 +559,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
   // Load user properties
   const userProperties = PropertiesService.getUserProperties();
   const createdDraftIds = JSON.parse(
-    userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS)
+    userProperties.getProperty(UP_KEY_CREATED_DRAFT_IDS),
   );
   const disableSendDrafts = !createdDraftIds || createdDraftIds.length == 0;
   // Get URL of currently open spreadsheet if host is Google Sheets
@@ -574,8 +574,8 @@ function createMailMergeCard(userLocale, hostApp, config) {
     CardService.newCardSection()
       .addWidget(
         CardService.newTextParagraph().setText(
-          localizedMessage.messageList.cardHomepageMessage
-        )
+          localizedMessage.messageList.cardHomepageMessage,
+        ),
       )
       .addWidget(
         CardService.newButtonSet().addButton(
@@ -583,11 +583,11 @@ function createMailMergeCard(userLocale, hostApp, config) {
             .setText(localizedMessage.messageList.buttonSendDrafts)
             .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
             .setOnClickAction(
-              CardService.newAction().setFunctionName('sendCreatedDrafts')
+              CardService.newAction().setFunctionName('sendCreatedDrafts'),
             )
-            .setDisabled(disableSendDrafts)
-        )
-      )
+            .setDisabled(disableSendDrafts),
+        ),
+      ),
   );
   // Recipient List Section
   builder.addSection(
@@ -599,37 +599,37 @@ function createMailMergeCard(userLocale, hostApp, config) {
           .setTitle(localizedMessage.messageList.cardEnterSpreadsheetUrl)
           .setHint(localizedMessage.messageList.cardHintSpreadsheetUrl)
           .setValue(
-            ssUrl || config.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL
-          )
+            ssUrl || config.SPREADSHEET_URL || DEFAULT_CONFIG.SPREADSHEET_URL,
+          ),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('DATA_SHEET_NAME')
           .setTitle(localizedMessage.messageList.cardEnterSheetName)
           .setHint(localizedMessage.messageList.cardHintSheetName)
-          .setValue(config.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME)
+          .setValue(config.DATA_SHEET_NAME || DEFAULT_CONFIG.DATA_SHEET_NAME),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('TO')
           .setTitle(localizedMessage.messageList.cardEnterTo)
           .setHint(localizedMessage.messageList.cardHintTo)
-          .setValue(config.TO || DEFAULT_CONFIG.TO)
+          .setValue(config.TO || DEFAULT_CONFIG.TO),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('CC')
           .setTitle(localizedMessage.messageList.cardEnterCc)
           .setHint(localizedMessage.messageList.cardHintCc)
-          .setValue(config.CC || DEFAULT_CONFIG.CC)
+          .setValue(config.CC || DEFAULT_CONFIG.CC),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('BCC')
           .setTitle(localizedMessage.messageList.cardEnterBcc)
           .setHint(localizedMessage.messageList.cardHintBcc)
-          .setValue(config.BCC || DEFAULT_CONFIG.BCC)
-      )
+          .setValue(config.BCC || DEFAULT_CONFIG.BCC),
+      ),
   );
   // Template Draft Section
   builder.addSection(
@@ -640,7 +640,7 @@ function createMailMergeCard(userLocale, hostApp, config) {
           .setFieldName('TEMPLATE_SUBJECT')
           .setTitle(localizedMessage.messageList.cardEnterTemplateSubject)
           .setHint(localizedMessage.messageList.cardHintTemplateSubject)
-          .setValue(config.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT)
+          .setValue(config.TEMPLATE_SUBJECT || DEFAULT_CONFIG.TEMPLATE_SUBJECT),
       )
       .addWidget(
         CardService.newDecoratedText()
@@ -650,12 +650,12 @@ function createMailMergeCard(userLocale, hostApp, config) {
               .setSelected(
                 typeof config.ENABLE_GROUP_MERGE == 'boolean'
                   ? config.ENABLE_GROUP_MERGE
-                  : DEFAULT_CONFIG.ENABLE_GROUP_MERGE
+                  : DEFAULT_CONFIG.ENABLE_GROUP_MERGE,
               )
               .setFieldName('ENABLE_GROUP_MERGE')
-              .setValue('enabled')
-          )
-      )
+              .setValue('enabled'),
+          ),
+      ),
   );
   // Advanced Settings Section
   builder.addSection(
@@ -670,25 +670,25 @@ function createMailMergeCard(userLocale, hostApp, config) {
               .setSelected(
                 typeof config.ENABLE_REPLY_TO == 'boolean'
                   ? config.ENABLE_REPLY_TO
-                  : DEFAULT_CONFIG.ENABLE_REPLY_TO
+                  : DEFAULT_CONFIG.ENABLE_REPLY_TO,
               )
               .setFieldName('ENABLE_REPLY_TO')
-              .setValue('enabled')
-          )
+              .setValue('enabled'),
+          ),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('REPLY_TO')
           .setTitle(localizedMessage.messageList.cardEnterReplyTo)
           .setHint(localizedMessage.messageList.cardHintReplyTo)
-          .setValue(config.REPLY_TO || DEFAULT_CONFIG.REPLY_TO)
+          .setValue(config.REPLY_TO || DEFAULT_CONFIG.REPLY_TO),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('REPLACE_VALUE')
           .setTitle(localizedMessage.messageList.cardEnterReplaceValue)
           .setHint(localizedMessage.messageList.cardHintReplaceValue)
-          .setValue(config.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE)
+          .setValue(config.REPLACE_VALUE || DEFAULT_CONFIG.REPLACE_VALUE),
       )
       .addWidget(
         CardService.newTextInput()
@@ -697,8 +697,8 @@ function createMailMergeCard(userLocale, hostApp, config) {
           .setHint(localizedMessage.messageList.cardHintMergeFieldMarker)
           .setValue(
             config.MERGE_FIELD_MARKER_TEXT ||
-              DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT
-          )
+              DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT,
+          ),
       )
       .addWidget(
         CardService.newTextInput()
@@ -707,15 +707,15 @@ function createMailMergeCard(userLocale, hostApp, config) {
           .setHint(localizedMessage.messageList.cardHintGroupFieldMarker)
           .setValue(
             config.GROUP_FIELD_MARKER_TEXT ||
-              DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT
-          )
+              DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT,
+          ),
       )
       .addWidget(
         CardService.newTextInput()
           .setFieldName('ROW_INDEX_MARKER')
           .setTitle(localizedMessage.messageList.cardEnterRowIndexMarker)
           .setHint(localizedMessage.messageList.cardHintRowIndexMarker)
-          .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER)
+          .setValue(config.ROW_INDEX_MARKER || DEFAULT_CONFIG.ROW_INDEX_MARKER),
       )
       .addWidget(
         CardService.newDecoratedText()
@@ -725,12 +725,12 @@ function createMailMergeCard(userLocale, hostApp, config) {
               .setSelected(
                 typeof config.ENABLE_DEBUG_MODE == 'boolean'
                   ? config.ENABLE_DEBUG_MODE
-                  : DEFAULT_CONFIG.ENABLE_DEBUG_MODE
+                  : DEFAULT_CONFIG.ENABLE_DEBUG_MODE,
               )
               .setFieldName('ENABLE_DEBUG_MODE')
-              .setValue('enabled')
-          )
-      )
+              .setValue('enabled'),
+          ),
+      ),
   );
   // Buttons Section
   builder.addSection(
@@ -742,41 +742,41 @@ function createMailMergeCard(userLocale, hostApp, config) {
             .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
             .setOnClickAction(
               CardService.newAction().setFunctionName(
-                'buildHomepageRestoreUserConfig'
-              )
-            )
+                'buildHomepageRestoreUserConfig',
+              ),
+            ),
         )
         .addButton(
           CardService.newTextButton()
             .setText(localizedMessage.messageList.buttonSaveUserConfig)
             .setOnClickAction(
-              CardService.newAction().setFunctionName('saveUserConfig')
-            )
+              CardService.newAction().setFunctionName('saveUserConfig'),
+            ),
         )
         .addButton(
           CardService.newTextButton()
             .setText(localizedMessage.messageList.buttonRestoreDefault)
             .setOnClickAction(
               CardService.newAction().setFunctionName(
-                'buildHomepageRestoreDefault'
-              )
-            )
+                'buildHomepageRestoreDefault',
+              ),
+            ),
         )
         .addButton(
           CardService.newTextButton()
             .setText(localizedMessage.messageList.buttonReadDocument)
             .setOpenLink(
               CardService.newOpenLink().setUrl(
-                localizedMessage.messageList.buttonReadDocumentUrl
-              )
-            )
-        )
+                localizedMessage.messageList.buttonReadDocumentUrl,
+              ),
+            ),
+        ),
       /*
       .addButton(CardService.newTextButton()
         .setText('test')
         .setOnClickAction(CardService.newAction().setFunctionName('test')))
       */
-    )
+    ),
   );
   // Fixed Footer
   builder.setFixedFooter(
@@ -786,18 +786,18 @@ function createMailMergeCard(userLocale, hostApp, config) {
           .setText(localizedMessage.messageList.buttonCreateDrafts)
           .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
           .setOnClickAction(
-            CardService.newAction().setFunctionName('createDraftEmails')
+            CardService.newAction().setFunctionName('createDraftEmails'),
           )
-          .setDisabled(false)
+          .setDisabled(false),
       )
       .setSecondaryButton(
         CardService.newTextButton()
           .setText(localizedMessage.messageList.buttonSendEmails)
           .setOnClickAction(
-            CardService.newAction().setFunctionName('sendEmails')
+            CardService.newAction().setFunctionName('sendEmails'),
           )
-          .setDisabled(false)
-      )
+          .setDisabled(false),
+      ),
   );
   return builder.build();
 }
@@ -820,8 +820,8 @@ function createMessageCard(message, userLocale) {
   var builder = CardService.newCardBuilder()
     .addSection(
       CardService.newCardSection().addWidget(
-        CardService.newTextParagraph().setText(message)
-      )
+        CardService.newTextParagraph().setText(message),
+      ),
     )
     .addSection(
       CardService.newCardSection().addWidget(
@@ -830,10 +830,10 @@ function createMessageCard(message, userLocale) {
             .setText(localizedMessage.messageList.buttonReturnHome)
             .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
             .setOnClickAction(
-              CardService.newAction().setFunctionName('buildHomepage')
-            )
-        )
-      )
+              CardService.newAction().setFunctionName('buildHomepage'),
+            ),
+        ),
+      ),
     );
   return builder.build();
 }
@@ -852,7 +852,7 @@ function saveUserConfig(event) {
   // Save on user property
   PropertiesService.getUserProperties().setProperty(
     UP_KEY_USER_CONFIG,
-    JSON.stringify(config)
+    JSON.stringify(config),
   );
   // Construct complete message
   const localizedMessage = new LocalizedMessage(config.userLocale);
@@ -875,7 +875,7 @@ function createDraftEmails(event) {
   const config = parseConfig_(event);
   return createMessageCard(
     mailMerge(draftMode, config),
-    event.commonEventObject.userLocale
+    event.commonEventObject.userLocale,
   );
 }
 
@@ -889,7 +889,7 @@ function sendEmails(event) {
   const config = parseConfig_(event);
   return createMessageCard(
     mailMerge(draftMode, config),
-    event.commonEventObject.userLocale
+    event.commonEventObject.userLocale,
   );
 }
 
@@ -903,7 +903,7 @@ function sendEmails(event) {
 function mailMerge(
   draftMode = true,
   config = DEFAULT_CONFIG,
-  prevProperties = {}
+  prevProperties = {},
 ) {
   // Determine whether this script is executed manually or by a time-trigger
   const isTimeTriggered = Object.keys(prevProperties).length > 0;
@@ -918,7 +918,7 @@ function mailMerge(
   // Save current settings in user property
   userProperties.setProperty(
     UP_KEY_PREV_MAIL_MERGE_CONFIG,
-    JSON.stringify(config)
+    JSON.stringify(config),
   );
   let debugInfo = {
     completedRecipients: [],
@@ -949,18 +949,18 @@ function mailMerge(
     // Convert line breaks in the spreadsheet (in LF format, i.e., '\n')
     // to CRLF format ('\r\n') for merging into Gmail plain text
     let mergeDataEolReplaced = mergeData.map((element) =>
-      element.map((value) => value.replace(/\n|\r|\r\n/g, '\r\n'))
+      element.map((value) => value.replace(/\n|\r|\r\n/g, '\r\n')),
     );
     debugInfo.processTime.push(
       `Retrieved recipient list data at ${
         new Date().getTime() - debugInfo.start
-      } (millisec from start)`
+      } (millisec from start)`,
     );
     if (config.hostApp == 'SHEETS' && !isTimeTriggered) {
       // Confirmation before sending email
       let confirmAccount = localizedMessage.replaceConfirmAccount(
         draftMode,
-        myEmail
+        myEmail,
       );
       let answer = ui.alert(confirmAccount, ui.ButtonSet.OK_CANCEL);
       if (answer !== ui.Button.OK) {
@@ -969,7 +969,7 @@ function mailMerge(
       debugInfo.processTime.push(
         `Passed UI confirmation on SHEETS at ${
           new Date().getTime() - debugInfo.start
-        } (millisec from start)`
+        } (millisec from start)`,
       );
     }
     // Verify value of TO
@@ -988,7 +988,7 @@ function mailMerge(
     let draftMessages = [];
     if (templateDraftIds.length > 0) {
       draftMessages = templateDraftIds.map((draftId) =>
-        GmailApp.getDraft(draftId).getMessage()
+        GmailApp.getDraft(draftId).getMessage(),
       );
     } else {
       // draftMessages = GmailApp.getDraftMessages().filter(element => element.getSubject() == config.TEMPLATE_SUBJECT);
@@ -1004,13 +1004,13 @@ function mailMerge(
     // Check for duplicates
     if (draftMessages.length > 1) {
       throw new Error(
-        localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject
+        localizedMessage.messageList.errorTwoOrMoreDraftsWithSameSubject,
       );
     }
     // Throw error if no draft template is found
     if (draftMessages.length == 0) {
       throw new Error(
-        localizedMessage.messageList.errorNoMatchingTemplateDraft
+        localizedMessage.messageList.errorNoMatchingTemplateDraft,
       );
     }
     // Store template into an object
@@ -1047,7 +1047,7 @@ function mailMerge(
     debugInfo.processTime.push(
       `Retrieved template draft data at ${
         new Date().getTime() - debugInfo.start
-      } (millisec from start)`
+      } (millisec from start)`,
     );
     // Check template format; plain or HTML text.
     let isPlainText = template.plainBody === template.htmlBody;
@@ -1060,7 +1060,7 @@ function mailMerge(
       let inLineImageTags = [...template.htmlBody.matchAll(regExpImgTag)];
       inLineImageBlobs = template.inLineImages.reduce((obj, blob) => {
         let cid = inLineImageTags.find(
-          (element) => element.groups.blobName == blob.getName()
+          (element) => element.groups.blobName == blob.getName(),
         ).groups.cidSrc;
         obj[cid] = blob;
         return obj;
@@ -1070,7 +1070,7 @@ function mailMerge(
           template.inLineImages.length
         } in-line image data at ${
           new Date().getTime() - debugInfo.start
-        } (millisec from start)`
+        } (millisec from start)`,
       );
     }
     // Convert the 2d-array merge data into object, grouped by recipient(s) if group merge is enabled
@@ -1091,18 +1091,18 @@ function mailMerge(
           mergeDataHeader.reduce((o, k, i) => {
             o[k] = dataRow[i];
             return o;
-          }, {})
+          }, {}),
         );
         return obj;
       },
-      {}
+      {},
     );
     debugInfo.processTime.push(
       `Group Merge is ${
         config.ENABLE_GROUP_MERGE
           ? 'enabled. Grouped recipient list by recipient email address'
           : 'disabled. Data stored in groupedMergeData'
-      } at ${new Date().getTime() - debugInfo.start} (millisec from start)`
+      } at ${new Date().getTime() - debugInfo.start} (millisec from start)`,
     ); // Create draft or send email based on the template.
     let fillInTemplate_options = {
       excludeFromTemplate: noPlaceholder,
@@ -1121,7 +1121,7 @@ function mailMerge(
       let messageData = fillInTemplate_(
         template,
         groupedMergeData[k],
-        fillInTemplate_options
+        fillInTemplate_options,
       );
       let options = {
         htmlBody: isPlainText ? null : messageData.htmlBody,
@@ -1136,7 +1136,7 @@ function mailMerge(
         messageData.to,
         messageData.subject,
         messageData.plainBody,
-        options
+        options,
       );
       // Add the same Gmail labels as those on the template draft message.
       let draftThread = draft.getMessage().getThread();
@@ -1153,14 +1153,14 @@ function mailMerge(
       debugInfo.processTime.push(
         `Message for ${k} ${
           draftMode ? 'drafted' : 'sent'
-        } at ${timeElapsed} (millisec from start)`
+        } at ${timeElapsed} (millisec from start)`,
       );
       if (timeElapsed >= executionTimeThreshold) {
         // If the script execution time has passed more than executionTimeThreshold,
         // break the process to complete by execution on time-based triggers.
         debugInfo.completedRecipients =
           debugInfo.prevCompletedRecipients.concat(
-            debugInfo.completedRecipients
+            debugInfo.completedRecipients,
           );
         userProperties.setProperties(
           {
@@ -1170,7 +1170,7 @@ function mailMerge(
             exeRoundsMailMerge: debugInfo.exeRoundsMailMerge,
             templateDraftIds: JSON.stringify(templateDraftIds),
           },
-          false
+          false,
         );
         if (!isTimeTriggered) {
           // If this is the first execution of mailMerge,
@@ -1194,36 +1194,36 @@ function mailMerge(
         debugInfo.processTime.push(
           `Saved property and trigger set for post-process at ${
             new Date().getTime() - debugInfo.start
-          } (millisec from start)`
+          } (millisec from start)`,
         );
         let notificationMessage = isTimeTriggered
           ? localizedMessage.replaceContinuingPostProcessMailMerge(
               APPS_SCRIPT_TIME_LIMIT / 1000,
               myEmail,
               draftMode,
-              debugInfo.completedRecipients.length
+              debugInfo.completedRecipients.length,
             )
           : localizedMessage.replaceProceedingToPostProcessMailMerge(
               ADDON_TIME_LIMIT / 1000,
               myEmail,
               draftMode,
-              debugInfo.completedRecipients.length
+              debugInfo.completedRecipients.length,
             );
         throw new Error(notificationMessage);
       }
     }
     // Notification
     debugInfo.completedRecipients = debugInfo.prevCompletedRecipients.concat(
-      debugInfo.completedRecipients
+      debugInfo.completedRecipients,
     );
     cardMessage = localizedMessage.replaceCompleteMessage(
       draftMode,
-      debugInfo.completedRecipients.length
+      debugInfo.completedRecipients.length,
     );
     // Delete time-based triggers
     if (isTimeTriggered) {
       ScriptApp.getProjectTriggers().forEach((trigger) =>
-        ScriptApp.deleteTrigger(trigger)
+        ScriptApp.deleteTrigger(trigger),
       );
     }
   } catch (error) {
@@ -1233,21 +1233,24 @@ function mailMerge(
       error.message.startsWith(
         localizedMessage.messageList.proceedingToPostProcessMailMerge.slice(
           0,
-          10
-        )
+          10,
+        ),
       ) ||
       error.message.startsWith(
-        localizedMessage.messageList.continuingPostProcessMailMerge.slice(0, 10)
+        localizedMessage.messageList.continuingPostProcessMailMerge.slice(
+          0,
+          10,
+        ),
       )
     ) {
       cardMessage = error.message;
     } else if (
       error.message.startsWith(
-        localizedMessage.messageList.appsScriptMessageErrorOnOpenByUrl
+        localizedMessage.messageList.appsScriptMessageErrorOnOpenByUrl,
       ) ||
       error.message.startsWith(
         localizedMessage.messageList
-          .appsScriptMessageNoPermissionErrorStartsWith
+          .appsScriptMessageNoPermissionErrorStartsWith,
       )
     ) {
       cardMessage = localizedMessage.messageList.errorSpreadsheetNotFound;
@@ -1258,7 +1261,7 @@ function mailMerge(
   }
   userProperties.setProperty(
     UP_KEY_CREATED_DRAFT_IDS,
-    JSON.stringify(createdDraftIds)
+    JSON.stringify(createdDraftIds),
   );
   if (config.ENABLE_DEBUG_MODE) {
     let debugInfoText = localizedMessage.messageList.cardMessageDebugInfo;
@@ -1268,7 +1271,7 @@ function mailMerge(
     MailApp.sendEmail(
       myEmail,
       `[GROUP MERGE] Debug Info`,
-      `${cardMessage}\n\n${debugInfoText}`
+      `${cardMessage}\n\n${debugInfoText}`,
     );
     cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
   }
@@ -1276,7 +1279,7 @@ function mailMerge(
     MailApp.sendEmail(
       myEmail,
       localizedMessage.messageList.subjectPostProcessUpdate,
-      cardMessage
+      cardMessage,
     );
   }
   return cardMessage;
@@ -1330,7 +1333,7 @@ function sendDrafts(config, prevProperties = {}) {
   // Save current settings in user property
   userProperties.setProperty(
     UP_KEY_PREV_SEND_DRAFTS_CONFIG,
-    JSON.stringify(config)
+    JSON.stringify(config),
   );
   let debugInfo = {
     config: config,
@@ -1348,7 +1351,7 @@ function sendDrafts(config, prevProperties = {}) {
       var ui = SpreadsheetApp.getUi();
       let answer = ui.alert(
         localizedMessage.replaceConfirmSendingOfDraft(myEmail),
-        ui.ButtonSet.OK_CANCEL
+        ui.ButtonSet.OK_CANCEL,
       );
       if (answer !== ui.Button.OK) {
         throw new Error(localizedMessage.messageList.errorSendDraftsCanceled);
@@ -1367,7 +1370,7 @@ function sendDrafts(config, prevProperties = {}) {
     debugInfo.processTime.push(
       `Retrieved Gmail drafts at ${
         new Date().getTime() - debugInfo.start
-      } (millisec from start)`
+      } (millisec from start)`,
     );
     for (let i = 0; i < drafts.length; i++) {
       let draft = drafts[i];
@@ -1384,7 +1387,7 @@ function sendDrafts(config, prevProperties = {}) {
       debugInfo.processTime.push(
         `Draft (ID: ${draftId}) ${
           isSent ? 'sent' : 'checked'
-        } at ${timeElapsed} (millisec from start)`
+        } at ${timeElapsed} (millisec from start)`,
       );
       if (timeElapsed >= executionTimeThreshold) {
         // If the script execution time has passed more than executionTimeThreshold,
@@ -1394,7 +1397,7 @@ function sendDrafts(config, prevProperties = {}) {
             createdDraftIds: JSON.stringify(createdDraftIds),
             exeRoundsSendDrafts: debugInfo.exeRoundsSendDrafts,
           },
-          false
+          false,
         );
         if (!isTimeTriggered) {
           // If this is the first execution of sendDrafts,
@@ -1418,18 +1421,18 @@ function sendDrafts(config, prevProperties = {}) {
         debugInfo.processTime.push(
           `Saved property and trigger set for post-process at ${
             new Date().getTime() - debugInfo.start
-          } (millisec from start)`
+          } (millisec from start)`,
         );
         let notificationMessage = isTimeTriggered
           ? localizedMessage.replaceContinuingPostProcessSendDrafts(
               APPS_SCRIPT_TIME_LIMIT / 1000,
               myEmail,
-              messageCount
+              messageCount,
             )
           : localizedMessage.replaceProceedingToPostProcessSendDrafts(
               ADDON_TIME_LIMIT / 1000,
               myEmail,
-              messageCount
+              messageCount,
             );
         throw new Error(notificationMessage);
       }
@@ -1438,13 +1441,13 @@ function sendDrafts(config, prevProperties = {}) {
     createdDraftIds = [];
     userProperties.setProperty(
       UP_KEY_CREATED_DRAFT_IDS,
-      JSON.stringify(createdDraftIds)
+      JSON.stringify(createdDraftIds),
     );
     cardMessage = localizedMessage.replaceCompleteMessage(false, messageCount);
     // Delete time-based triggers
     if (isTimeTriggered) {
       ScriptApp.getProjectTriggers().forEach((trigger) =>
-        ScriptApp.deleteTrigger(trigger)
+        ScriptApp.deleteTrigger(trigger),
       );
     }
   } catch (error) {
@@ -1454,14 +1457,14 @@ function sendDrafts(config, prevProperties = {}) {
       error.message.startsWith(
         localizedMessage.messageList.proceedingToPostProcessSendDrafts.slice(
           0,
-          10
-        )
+          10,
+        ),
       ) ||
       error.message.startsWith(
         localizedMessage.messageList.continuingPostProcessSendDrafts.slice(
           0,
-          10
-        )
+          10,
+        ),
       )
     ) {
       cardMessage = error.message;
@@ -1478,7 +1481,7 @@ function sendDrafts(config, prevProperties = {}) {
     MailApp.sendEmail(
       myEmail,
       `[GROUP MERGE] Debug Info`,
-      `${cardMessage}\n\n${debugInfoText}`
+      `${cardMessage}\n\n${debugInfoText}`,
     );
     cardMessage += `\n\n${localizedMessage.messageList.cardMessageSentDebugInfo}`;
   }
@@ -1486,7 +1489,7 @@ function sendDrafts(config, prevProperties = {}) {
     MailApp.sendEmail(
       myEmail,
       localizedMessage.messageList.subjectPostProcessUpdate,
-      cardMessage
+      cardMessage,
     );
   }
   return cardMessage;
@@ -1589,7 +1592,7 @@ function fillInTemplate_(template, data, options) {
   if (!('mergeFieldMarker' in options)) {
     options['mergeFieldMarker'] = new RegExp(
       DEFAULT_CONFIG.MERGE_FIELD_MARKER_TEXT,
-      'g'
+      'g',
     );
   }
   if (!('enableGroupMerge' in options)) {
@@ -1598,7 +1601,7 @@ function fillInTemplate_(template, data, options) {
   if (!('groupFieldMarker' in options)) {
     options['groupFieldMarker'] = new RegExp(
       DEFAULT_CONFIG.GROUP_FIELD_MARKER_TEXT,
-      'g'
+      'g',
     );
   }
   if (!('rowIndexMarker' in options)) {
@@ -1631,7 +1634,7 @@ function fillInTemplate_(template, data, options) {
               let rowIndex = i + 1;
               let fieldRowIndexed = groupMergeField[1].replace(
                 options.rowIndexMarker,
-                rowIndex
+                rowIndex,
               );
               fieldVars.forEach((variable, ind) => {
                 let replaceValue =
@@ -1641,7 +1644,7 @@ function fillInTemplate_(template, data, options) {
                   : replaceValue;
                 fieldRowIndexed = fieldRowIndexed.replace(
                   variable[0],
-                  replaceValue
+                  replaceValue,
                 );
               });
               fieldMerged.push(fieldRowIndexed);
@@ -1654,8 +1657,8 @@ function fillInTemplate_(template, data, options) {
           (groupField, index) =>
             (text = text.replace(
               groupField[0],
-              groupTextsMerged[index] || options.replaceValue
-            ))
+              groupTextsMerged[index] || options.replaceValue,
+            )),
         );
       }
     }
