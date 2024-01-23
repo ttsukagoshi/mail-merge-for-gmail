@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const groupMerge = require('../src/group-merge');
+
 const testTemplate = {
   testBodyTemplateWithGroupMerge:
     '[Body]\n\n[[\nEntry Number: {{i}}\nEmail: {{Email}}\nName: {{Name}}\n]]',
@@ -55,7 +57,7 @@ patterns.forEach((pattern) => {
     expect(
       groupMerge.fillInTemplate_(testTemplate, pattern.groupedMergeData_k, {
         enableGroupMerge: pattern.enableGroupMerge,
-      })
+      }),
     ).toEqual(pattern.expectedOutput);
   });
 });

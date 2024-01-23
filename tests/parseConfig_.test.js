@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const groupMerge = require('../src/group-merge');
 const mockEvents = [
   {
@@ -175,7 +176,7 @@ const mockEvents = [
 mockEvents.forEach((mockEvent) => {
   test(mockEvent.eventTitle, () => {
     expect(groupMerge.parseConfig_(mockEvent.event)).toEqual(
-      mockEvent.expectedConfig
+      mockEvent.expectedConfig,
     );
   });
 });
