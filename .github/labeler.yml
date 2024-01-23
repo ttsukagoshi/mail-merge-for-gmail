@@ -6,3 +6,14 @@ documentation:
               - README*.md
               - docs/*
               - docs/**/*
+              - .github/ISSUE_TEMPLATE/*
+              - .github/ISSUE_TEMPLATE/**/*
+github_actions:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - .github/*
+              - '!.github/ISSUE_TEMPLATE/**/*'
+              - '!.github/dependabot.yml'
+              - .github/workflows/*
+              - .github/workflows/**/*
