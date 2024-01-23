@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const groupMerge = require('../src/group-merge');
 
 Object.keys(groupMerge.MESSAGES).forEach((locale) => {

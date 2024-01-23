@@ -9,35 +9,16 @@
 # Env Vars #
 ############
 env:
-  browser: true
-  es6: true
   jest: true
   node: true
+  googleappsscript/googleappsscript: true
 
 ###############
 # Global Vars #
 ###############
-globals:
-  # Atomics: readonly
-  # SharedArrayBuffer: readonly
-  CacheService: readonly
-  CalendarApp: readonly
-  CardService: readonly
-  DocumentApp: readonly
-  DriveApp: readonly
-  FormApp: readonly
-  GmailApp: readonly
-  HtmlService: readonly
-  MailApp: readonly
-  PropertiesService: readonly
-  ScriptApp: readonly
-  Session: readonly
-  SitesApp: readonly
-  SlidesApp: readonly
-  SpreadsheetApp: readonly
-  UrlFetchApp: readonly
-  Utilities: readonly
-  XmlService: readonly
+# globals:
+#   Atomics: readonly
+#   SharedArrayBuffer: readonly
 
 ###############
 # Parser vars #
@@ -45,7 +26,7 @@ globals:
 parser: '@typescript-eslint/parser'
 parserOptions:
   ecmaVersion: 2018
-  sourceType: module
+  sourceType: script
 
 ###########
 # Plugins #
@@ -53,12 +34,11 @@ parserOptions:
 extends:
   - 'eslint:recommended'
   - 'plugin:prettier/recommended'
+  - 'plugin:@typescript-eslint/recommended'
 plugins:
   - '@typescript-eslint'
-
+  - 'googleappsscript'
 #########
 # Rules #
 #########
-rules:
-  no-useless-escape: warn
-  semi: error
+# rules:
