@@ -1,5 +1,8 @@
 documentation:
-  - LICENSE
-  - README*.md
-  - docs/*
-  - docs/**/*
+  any:
+    changed-files:
+      any-glob-to-any-file:
+        - LICENSE
+        - README*.md
+        - docs/*
+        - docs/**/*
