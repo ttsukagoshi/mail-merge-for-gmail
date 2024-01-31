@@ -223,75 +223,108 @@ const MESSAGES = {
       '「作成済みの下書きを送信」処理が継続中です\n現在の処理はGoogle Apps Scriptに設けられた{{appsScriptLimitTimeInSec}}秒の実行時間制限を超過する見込みです。残りの処理はトリガーによって自動的に継続実行され、完了は{{myEmail}}宛のメールで通知されます。\n\n現在までに完了したメッセージ数：{{messageCount}}',
     subjectPostProcessUpdate: '[GROUP MERGE] 差し込みメール処理',
   },
-  "fr": {
-    "cardHomepageMessage": "Group Merge : Publipostage pour Gmail\nUne extension open-source pour envoyer des e-mails personnalisés basés sur un modèle de Gmail à plusieurs destinataires. La fonctionnalité unique <b>Group Merge</b> permet à l'expéditeur de regrouper plusieurs contenus pour le même destinataire dans un seul e-mail.\n\nSaisissez les éléments suivants et sélectionnez <b><i>Créer des brouillons</i></b> ou <b><i>Envoyer des e-mails</i></b>. <b>Tous les éléments sont obligatoires</b> sauf indication contraire.",
-    "cardRecipientListSettings": "1. Liste des destinataires",
-    "cardEnterSpreadsheetUrl": "Adresse web du classeur",
-    "cardHintSpreadsheetUrl": "Entrez l'adresse web complète du classeur Google Sheets utilisé comme liste de destinataires.",
-    "cardEnterSheetName": "Nom de la feuille",
-    "cardHintSheetName": "Nom de la feuille de calcul de la liste des destinataires. Assurez-vous que la première ligne de cette feuille est utilisée pour les noms des champs de fusion.",
-    "cardEnterTo": "À",
-    "cardHintTo": "Adresse e-mail du destinataire. Utilisez des marqueurs de champ pour une seule adresse, par exemple {{Email}}. Si vous souhaitez envoyer les e-mails personnalisés à plusieurs comptes, utilisez les champs CC et CCI.",
-    "cardEnterCc": "CC",
-    "cardHintCc": "[Facultatif] Adresse e-mail des destinataires en CC. Utilisez des virgules pour séparer plusieurs adresses.",
-    "cardEnterBcc": "CCI",
-    "cardHintBcc": "[Facultatif] Adresse e-mail des destinataires en CCI. Utilisez des virgules pour séparer plusieurs adresses.",
-    "cardTemplateDraftSettings": "2. Brouillon du modèle",
-    "cardEnterTemplateSubject": "Objet du brouillon d'e-mail",
-    "cardHintTemplateSubject": "Assurez-vous que l'objet de l'e-mail est unique ; une erreur sera retournée s'il y a plus d'un brouillon avec le même objet.",
-    "cardSwitchEnableGroupMerge": "Activer l'option e-mails groupés",
-    "cardAdvancedSettings": "3. Paramètres avancés",
-    "cardSwitchEnableReplyTo": "Activer 'répondre à'",
-    "cardEnterReplyTo": "Répondre à",
-    "cardHintReplyTo": "[Obligatoire uniquement si 'répondre à' est activé] L'adresse e-mail à définir comme répondre à. Des marqueurs de champ peuvent être utilisés pour définir la valeur en fonction des données de la feuille de calcul, par exemple {{repondreA}}@mondomaine.com ou simplement, {{adresseDeRepondre}}",
-    "cardEnterReplaceValue": "Remplacer la valeur",
-    "cardHintReplaceValue": "Texte qui remplacera les champs de fusion avec des données vides.",
-    "cardEnterMergeFieldMarker": "Marqueur de champ de fusion",
-    "cardHintMergeFieldMarker": "Texte à traiter dans le constructeur RegExp() pour définir le(s) champ(s) de fusion. Assurez-vous d'utiliser des parenthèses pour désigner le groupe de capture pour marquer le contenu du champ, par exemple, le mot \"champ\" dans {{champ}}. Notez que la barre oblique inverse elle-même ne doit pas être échappée.",
-    "cardEnterGroupFieldMarker": "Marqueur de champ de fusion de groupe",
-    "cardHintGroupFieldMarker": "Texte à traiter dans le constructeur RegExp() pour définir le(s) champ(s) de fusion de groupe. Assurez-vous d'utiliser des parenthèses pour désigner le groupe de capture pour marquer le contenu du champ. Notez que la barre oblique inverse elle-même ne doit pas être échappée.",
-    "cardEnterRowIndexMarker": "Marqueur d'indice de ligne",
-    "cardHintRowIndexMarker": "Marqueur pour fusionner le numéro d'indice de ligne dans une fusion de groupe.",
-    "cardSwitchEnableDebugMode": "Activer le mode débogage",
-    "cardMessageUnexpectedError": "Erreur inattendue :\n",
-    "cardMessageDebugInfo": "Informations de débogage\nFaites attention à exclure toute information sensible, comme les adresses e-mail de vos clients, si vous allez copier et coller les informations de débogage ci-dessous ailleurs :\n\n",
-    "cardMessageSentDebugInfo": "<b>L'email des informations de débogage est envoyé à votre compte Gmail.</b>",
-    "buttonRestoreUserConfig": "Restaurer les paramètres utilisateur",
-    "buttonRestoreDefault": "Restaurer les paramètres par défaut",
-    "buttonReadDocument": "Site Web",
-    "buttonReadDocumentUrl": "https://www.scriptable-assets.page/add-ons/group-merge/",
-    "buttonSaveUserConfig": "Enregistrer les paramètres utilisateur",
-    "buttonCreateDrafts": "Créer des brouillons",
-    "buttonSendDrafts": "Envoyer les brouillons créés",
-    "buttonSendEmails": "Envoyer des e-mails",
-    "buttonReturnHome": "Retour",
-    "errorSpreadsheetNotFound": "[Erreur de publipostage]\nL'adresse web du classeur Google Sheets que vous avez saisie n'est pas valide. Vérifiez si vous avez saisi la bonne URL et que vous avez accès à ce classeur.",
-    "errorSheetNotFound": "[Erreur de publipostage]\nLa feuille de calcul de la liste des destinataires dans le classeur est introuvable. Vérifiez si vous avez saisi le bon nom de feuille.",
-    "alertConfirmAccountCreateDraft": "Êtes-vous sûr de vouloir créer des e-mails de brouillon en tant que {{myEmail}} ?",
-    "alertConfirmAccountSendEmail": "Êtes-vous sûr de vouloir envoyer des e-mails en tant que {{myEmail}} ?",
-    "errorMailMergeCanceled": "Publipostage annulé.",
-    "errorNoSubjectTextEntered": "[Erreur de publipostage]\nSaisissez l'objet du brouillon d'e-mail à utiliser comme modèle pour le publipostage.",
-    "errorTwoOrMoreDraftsWithSameSubject": "[Erreur de publipostage]\nIl y a 2 ou plusieurs brouillons Gmail avec l'objet que vous avez saisi. Saisissez un texte de objet unique.",
-    "errorNoMatchingTemplateDraft": "[Erreur de publipostage]\nAucun brouillon de modèle Gmail correspondant avec l'objet saisi trouvé. Assurez-vous que l'objet que vous avez saisi est correct.",
-    "errorNoToEntered": "[Erreur de publipostage]\nAucun destinataire 'À' saisi. Assurez-vous d'avoir saisi un champ de fusio pour l'adresse e-mail du destinataire.",
-    "errorMultipleToEntered": "[Erreur de publipostage]\nIl y a plusieurs destinataires. Il n'en faut qu'un.",
-    "errorInvalidTo": "[Erreur de publipostage]\nNom de colonne destinataire invalide. Assurez-vous que le champ de fusion 'À' référence une colonne existante.",
-    "alertCompleteAllDraftsCreated": "Terminé : {{messageCount}} brouillon(s) créé(s). Rechargez la page des brouillons de Gmail si vous ne voyez pas la liste complète des mails fusionnés.",
-    "alertCompleteAllMailsSent": "Terminé : {{messageCount}} mail(s) envoyé(s).",
-    "alertConfirmSendingOfDraft": "Êtes-vous sûr de vouloir envoyer les e-mails de brouillon en tant que {{myEmail}} ?\nSeuls les brouillons créés par 'Créer des brouillons' seront envoyés.",
-    "errorSendDraftsCanceled": "L'envoi des brouillons est annulé.",
-    "errorNoDraftToSend": "[Erreur de publipostage]\nAucun brouillon trouvé. Exécutez 'Créer des brouillons' pour créer des brouillons fusionnés.",
-    "alertCompleteSavedUserConfig": "Terminé : Paramètres utilisateur enregistrés.\n\n",
-    "appsScriptMessageErrorOnOpenByUrlStartsWith": "Erreur inattendue lors de l'obtention de la méthode ou de la propriété openByUrl",
-    "appsScriptMessageNoPermissionErrorStartsWith": "Vous n'avez pas la permission d'accéder au document demandé.",
-    "proceedingToPostProcessMailMerge": "Le publipostage va dépasser la limite de temps de {{actionLimitTimeInSec}} secondes pour les extensions Google Workspace. La partie restante va être traitée en arrière plan. Vous recevrez une notification par email à {{myEmail}} une fois tout terminé.\nMode Brouillon: {{draftMode}}\nNombre de messages: {{messageCount}}",
-    "continuingPostProcessMailMerge": "SUITE DU PUBLIPOSTAGE\nLe publipostage va dépasser la limite de temps de {{appsScriptLimitTimeInSec}} secondes pour Google Apps Script. La partie restante va être traitée en arrière plan. Une notification par email sera envoyée à {{myEmail}} à la fin du traitement.\nMode Brouillon: {{draftMode}}\nNombre de messages: {{messageCount}}",
-    "proceedingToPostProcessSendDrafts": "L'envoi des brouillons va dépasser la limite de temps de {{actionLimitTimeInSec}} secondes pour les extensions Google Workspace. La partie restante va être traitée en arrière plan. Vous recevrez une notification par email à {{myEmail}} une fois tout terminé.\nNombre de messages: {{messageCount}}",
-    "continuingPostProcessSendDrafts": "SUITE DE L'ENVOI DES BROUILLONS\nL'envoi des brouillons va dépasser la limite de temps de {{appsScriptLimitTimeInSec}} secondes pour Google Apps Script. La suite sera automatisée. Une notification par email sera envoyée à {{myEmail}} à la fin du traitement.\nNombre de messages: {{messageCount}}",
-    "subjectPostProcessUpdate": "[GROUP MERGE] Notification de Publipostage"
-
-  }
-
+  fr: {
+    cardHomepageMessage:
+      "Group Merge : Publipostage pour Gmail\nUne extension open-source pour envoyer des e-mails personnalisés basés sur un modèle de Gmail à plusieurs destinataires. La fonctionnalité unique <b>Group Merge</b> permet à l'expéditeur de regrouper plusieurs contenus pour le même destinataire dans un seul e-mail.\n\nSaisissez les éléments suivants et sélectionnez <b><i>Créer des brouillons</i></b> ou <b><i>Envoyer des e-mails</i></b>. <b>Tous les éléments sont obligatoires</b> sauf indication contraire.",
+    cardRecipientListSettings: '1. Liste des destinataires',
+    cardEnterSpreadsheetUrl: 'Adresse web du classeur',
+    cardHintSpreadsheetUrl:
+      "Entrez l'adresse web complète du classeur Google Sheets utilisé comme liste de destinataires.",
+    cardEnterSheetName: 'Nom de la feuille',
+    cardHintSheetName:
+      'Nom de la feuille de calcul de la liste des destinataires. Assurez-vous que la première ligne de cette feuille est utilisée pour les noms des champs de fusion.',
+    cardEnterTo: 'À',
+    cardHintTo:
+      'Adresse e-mail du destinataire. Utilisez des marqueurs de champ pour une seule adresse, par exemple {{Email}}. Si vous souhaitez envoyer les e-mails personnalisés à plusieurs comptes, utilisez les champs CC et CCI.',
+    cardEnterCc: 'CC',
+    cardHintCc:
+      '[Facultatif] Adresse e-mail des destinataires en CC. Utilisez des virgules pour séparer plusieurs adresses.',
+    cardEnterBcc: 'CCI',
+    cardHintBcc:
+      '[Facultatif] Adresse e-mail des destinataires en CCI. Utilisez des virgules pour séparer plusieurs adresses.',
+    cardTemplateDraftSettings: '2. Brouillon du modèle',
+    cardEnterTemplateSubject: "Objet du brouillon d'e-mail",
+    cardHintTemplateSubject:
+      "Assurez-vous que l'objet de l'e-mail est unique ; une erreur sera retournée s'il y a plus d'un brouillon avec le même objet.",
+    cardSwitchEnableGroupMerge: "Activer l'option e-mails groupés",
+    cardAdvancedSettings: '3. Paramètres avancés',
+    cardSwitchEnableReplyTo: "Activer 'répondre à'",
+    cardEnterReplyTo: 'Répondre à',
+    cardHintReplyTo:
+      "[Obligatoire uniquement si 'répondre à' est activé] L'adresse e-mail à définir comme répondre à. Des marqueurs de champ peuvent être utilisés pour définir la valeur en fonction des données de la feuille de calcul, par exemple {{repondreA}}@mondomaine.com ou simplement, {{adresseDeRepondre}}",
+    cardEnterReplaceValue: 'Remplacer la valeur',
+    cardHintReplaceValue:
+      'Texte qui remplacera les champs de fusion avec des données vides.',
+    cardEnterMergeFieldMarker: 'Marqueur de champ de fusion',
+    cardHintMergeFieldMarker:
+      'Texte à traiter dans le constructeur RegExp() pour définir le(s) champ(s) de fusion. Assurez-vous d\'utiliser des parenthèses pour désigner le groupe de capture pour marquer le contenu du champ, par exemple, le mot "champ" dans {{champ}}. Notez que la barre oblique inverse elle-même ne doit pas être échappée.',
+    cardEnterGroupFieldMarker: 'Marqueur de champ de fusion de groupe',
+    cardHintGroupFieldMarker:
+      "Texte à traiter dans le constructeur RegExp() pour définir le(s) champ(s) de fusion de groupe. Assurez-vous d'utiliser des parenthèses pour désigner le groupe de capture pour marquer le contenu du champ. Notez que la barre oblique inverse elle-même ne doit pas être échappée.",
+    cardEnterRowIndexMarker: "Marqueur d'indice de ligne",
+    cardHintRowIndexMarker:
+      "Marqueur pour fusionner le numéro d'indice de ligne dans une fusion de groupe.",
+    cardSwitchEnableDebugMode: 'Activer le mode débogage',
+    cardMessageUnexpectedError: 'Erreur inattendue :\n',
+    cardMessageDebugInfo:
+      'Informations de débogage\nFaites attention à exclure toute information sensible, comme les adresses e-mail de vos clients, si vous allez copier et coller les informations de débogage ci-dessous ailleurs :\n\n',
+    cardMessageSentDebugInfo:
+      "<b>L'email des informations de débogage est envoyé à votre compte Gmail.</b>",
+    buttonRestoreUserConfig: 'Restaurer les paramètres utilisateur',
+    buttonRestoreDefault: 'Restaurer les paramètres par défaut',
+    buttonReadDocument: 'Site Web',
+    buttonReadDocumentUrl:
+      'https://www.scriptable-assets.page/add-ons/group-merge/',
+    buttonSaveUserConfig: 'Enregistrer les paramètres utilisateur',
+    buttonCreateDrafts: 'Créer des brouillons',
+    buttonSendDrafts: 'Envoyer les brouillons créés',
+    buttonSendEmails: 'Envoyer des e-mails',
+    buttonReturnHome: 'Retour',
+    errorSpreadsheetNotFound:
+      "[Erreur de publipostage]\nL'adresse web du classeur Google Sheets que vous avez saisie n'est pas valide. Vérifiez si vous avez saisi la bonne URL et que vous avez accès à ce classeur.",
+    errorSheetNotFound:
+      '[Erreur de publipostage]\nLa feuille de calcul de la liste des destinataires dans le classeur est introuvable. Vérifiez si vous avez saisi le bon nom de feuille.',
+    alertConfirmAccountCreateDraft:
+      'Êtes-vous sûr de vouloir créer des e-mails de brouillon en tant que {{myEmail}} ?',
+    alertConfirmAccountSendEmail:
+      'Êtes-vous sûr de vouloir envoyer des e-mails en tant que {{myEmail}} ?',
+    errorMailMergeCanceled: 'Publipostage annulé.',
+    errorNoSubjectTextEntered:
+      "[Erreur de publipostage]\nSaisissez l'objet du brouillon d'e-mail à utiliser comme modèle pour le publipostage.",
+    errorTwoOrMoreDraftsWithSameSubject:
+      "[Erreur de publipostage]\nIl y a 2 ou plusieurs brouillons Gmail avec l'objet que vous avez saisi. Saisissez un texte de objet unique.",
+    errorNoMatchingTemplateDraft:
+      "[Erreur de publipostage]\nAucun brouillon de modèle Gmail correspondant avec l'objet saisi trouvé. Assurez-vous que l'objet que vous avez saisi est correct.",
+    errorNoToEntered:
+      "[Erreur de publipostage]\nAucun destinataire 'À' saisi. Assurez-vous d'avoir saisi un champ de fusio pour l'adresse e-mail du destinataire.",
+    errorMultipleToEntered:
+      "[Erreur de publipostage]\nIl y a plusieurs destinataires. Il n'en faut qu'un.",
+    errorInvalidTo:
+      "[Erreur de publipostage]\nNom de colonne destinataire invalide. Assurez-vous que le champ de fusion 'À' référence une colonne existante.",
+    alertCompleteAllDraftsCreated:
+      'Terminé : {{messageCount}} brouillon(s) créé(s). Rechargez la page des brouillons de Gmail si vous ne voyez pas la liste complète des mails fusionnés.',
+    alertCompleteAllMailsSent: 'Terminé : {{messageCount}} mail(s) envoyé(s).',
+    alertConfirmSendingOfDraft:
+      "Êtes-vous sûr de vouloir envoyer les e-mails de brouillon en tant que {{myEmail}} ?\nSeuls les brouillons créés par 'Créer des brouillons' seront envoyés.",
+    errorSendDraftsCanceled: "L'envoi des brouillons est annulé.",
+    errorNoDraftToSend:
+      "[Erreur de publipostage]\nAucun brouillon trouvé. Exécutez 'Créer des brouillons' pour créer des brouillons fusionnés.",
+    alertCompleteSavedUserConfig:
+      'Terminé : Paramètres utilisateur enregistrés.\n\n',
+    appsScriptMessageErrorOnOpenByUrlStartsWith:
+      "Erreur inattendue lors de l'obtention de la méthode ou de la propriété openByUrl",
+    appsScriptMessageNoPermissionErrorStartsWith:
+      "Vous n'avez pas la permission d'accéder au document demandé.",
+    proceedingToPostProcessMailMerge:
+      'Le publipostage va dépasser la limite de temps de {{actionLimitTimeInSec}} secondes pour les extensions Google Workspace. La partie restante va être traitée en arrière plan. Vous recevrez une notification par email à {{myEmail}} une fois tout terminé.\nMode Brouillon: {{draftMode}}\nNombre de messages: {{messageCount}}',
+    continuingPostProcessMailMerge:
+      'SUITE DU PUBLIPOSTAGE\nLe publipostage va dépasser la limite de temps de {{appsScriptLimitTimeInSec}} secondes pour Google Apps Script. La partie restante va être traitée en arrière plan. Une notification par email sera envoyée à {{myEmail}} à la fin du traitement.\nMode Brouillon: {{draftMode}}\nNombre de messages: {{messageCount}}',
+    proceedingToPostProcessSendDrafts:
+      "L'envoi des brouillons va dépasser la limite de temps de {{actionLimitTimeInSec}} secondes pour les extensions Google Workspace. La partie restante va être traitée en arrière plan. Vous recevrez une notification par email à {{myEmail}} une fois tout terminé.\nNombre de messages: {{messageCount}}",
+    continuingPostProcessSendDrafts:
+      "SUITE DE L'ENVOI DES BROUILLONS\nL'envoi des brouillons va dépasser la limite de temps de {{appsScriptLimitTimeInSec}} secondes pour Google Apps Script. La suite sera automatisée. Une notification par email sera envoyée à {{myEmail}} à la fin du traitement.\nNombre de messages: {{messageCount}}",
+    subjectPostProcessUpdate: '[GROUP MERGE] Notification de Publipostage',
+  },
 };
 
 class LocalizedMessage {
