@@ -31,10 +31,10 @@
   "homepage": "https://github.com/ttsukagoshi/mail-merge-for-gmail#readme",
   "devDependencies": {
     "@google/clasp": "^2.4.2",
-    "@types/google-apps-script": "^1.0.78",
+    "@types/google-apps-script": "^1.0.79",
     "@types/jest": "^29.5.11",
-    "@typescript-eslint/eslint-plugin": "^6.19.1",
-    "@typescript-eslint/parser": "^6.19.1",
+    "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "@typescript-eslint/parser": "^6.20.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-googleappsscript": "^1.0.5",
