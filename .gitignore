@@ -7,3 +7,5 @@ node_modules/
 coverage/
 # debugging
 src/debug/
+# for pnpm users
+pnpm-lock.yaml
