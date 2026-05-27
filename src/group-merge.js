@@ -80,6 +80,10 @@ const MESSAGES = {
     buttonReturnHome: 'Return',
     errorSpreadsheetNotFound:
       '[Mail Merge Error]\nThe Google Sheets URL that you entered is not valid. Check if you have entered the correct URL, and that you have access to that spreadsheet.',
+    errorSpreadsheetNoAccess:
+      '[Mail Merge Error]\nYou do not have access to the specified spreadsheet, or the spreadsheet does not exist. Check the URL and make sure you have been granted access.',
+    errorNotGoogleSheet:
+      '[Mail Merge Error]\nThe specified file is not a Google Sheets spreadsheet. If you are using an Excel file (.xlsx), please convert it to Google Sheets format first (File > Save as Google Sheets).',
     errorSheetNotFound:
       '[Mail Merge Error]\nThe worksheet of the list of recipients in the spreadsheet cannot found. Check if you have entered the correct sheet name.',
     alertConfirmAccountCreateDraft:
@@ -179,6 +183,10 @@ const MESSAGES = {
     buttonReturnHome: '戻る',
     errorSpreadsheetNotFound:
       '[Mail Merge Error]\n無効なGoogleスプレッドシートURLです。URLに誤りがないことや、当該スプレッドシートにアクセス権があることを確認してください。',
+    errorSpreadsheetNoAccess:
+      '[Mail Merge Error]\n指定されたスプレッドシートにアクセスする権限がないか、スプレッドシートが存在しません。URLを確認し、アクセス権が付与されていることをご確認ください。',
+    errorNotGoogleSheet:
+      '[Mail Merge Error]\n指定されたファイルはGoogleスプレッドシートではありません。Excelファイル（.xlsx）をご使用の場合は、まずGoogleスプレッドシート形式に変換してください（ファイル > Googleスプレッドシートとして保存）。',
     errorSheetNotFound:
       '[Mail Merge Error]\n宛先リストが記載されているシートが見つかりません。シート名が正しく入力されていることを確認してください。',
     alertConfirmAccountCreateDraft:
@@ -282,6 +290,10 @@ const MESSAGES = {
     buttonReturnHome: 'Retour',
     errorSpreadsheetNotFound:
       "[Erreur de publipostage]\nL'adresse web du classeur Google Sheets que vous avez saisie n'est pas valide. Vérifiez si vous avez saisi la bonne URL et que vous avez accès à ce classeur.",
+    errorSpreadsheetNoAccess:
+      "[Erreur de publipostage]\nVous n'avez pas accès au classeur spécifié, ou le classeur n'existe pas. Vérifiez l'URL et assurez-vous que vous avez les droits d'accès.",
+    errorNotGoogleSheet:
+      "[Erreur de publipostage]\nLe fichier spécifié n'est pas un classeur Google Sheets. Si vous utilisez un fichier Excel (.xlsx), veuillez d'abord le convertir au format Google Sheets (Fichier > Enregistrer au format Google Sheets).",
     errorSheetNotFound:
       '[Erreur de publipostage]\nLa feuille de calcul de la liste des destinataires dans le classeur est introuvable. Vérifiez si vous avez saisi le bon nom de feuille.',
     alertConfirmAccountCreateDraft:
@@ -996,6 +1008,30 @@ function sendEmails(event) {
 }
 
 /**
+ * Validate that the given spreadsheet URL points to an accessible Google Sheets file.
+ * @param {string} spreadsheetUrl The full URL of the Google Sheets spreadsheet.
+ * @param {Object} localizedMessage LocalizedMessage instance for the current user locale.
+ * @throws {Error} If the URL is malformed, the file is inaccessible, or the file is not a Google Sheet.
+ */
+function validateSpreadsheetUrl_(spreadsheetUrl, localizedMessage) {
+  const match = spreadsheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error(localizedMessage.messageList.errorSpreadsheetNotFound);
+  }
+  const fileId = match[1];
+  let file;
+  try {
+    file = DriveApp.getFileById(fileId);
+  } catch (e) {
+    throw new Error(localizedMessage.messageList.errorSpreadsheetNoAccess);
+  }
+  if (file.getMimeType() !== 'application/vnd.google-apps.spreadsheet') {
+    throw new Error(localizedMessage.messageList.errorNotGoogleSheet);
+  }
+  return `https://docs.google.com/spreadsheets/d/${fileId}/edit`;
+}
+
+/**
  * Core function of mail merge
  * @param {Boolean} draftMode Creates Gmail draft(s) instead of sending email. Defaults to true.
  * @param {Object} config Object returned by parseConfig_(eventObj)
@@ -1041,7 +1077,11 @@ function mailMerge(
     var ui = SpreadsheetApp.getUi();
   }
   try {
-    let ss = SpreadsheetApp.openByUrl(config.SPREADSHEET_URL);
+    const validatedUrl = validateSpreadsheetUrl_(
+      config.SPREADSHEET_URL,
+      localizedMessage,
+    );
+    let ss = SpreadsheetApp.openByUrl(validatedUrl);
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
     if (dataSheet == null) {
@@ -1823,5 +1863,6 @@ if (typeof module === 'object') {
     parseConfig_,
     fillInTemplate_,
     getKnownErrorMessages_,
+    validateSpreadsheetUrl_,
   };
 }
