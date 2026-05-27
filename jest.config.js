@@ -9,6 +9,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   globals: {
+    DriveApp: {},
     PropertiesService: {},
     SpreadsheetApp: {},
     UrlFetchApp: {},
