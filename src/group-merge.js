@@ -1028,6 +1028,7 @@ function validateSpreadsheetUrl_(spreadsheetUrl, localizedMessage) {
   if (file.getMimeType() !== 'application/vnd.google-apps.spreadsheet') {
     throw new Error(localizedMessage.messageList.errorNotGoogleSheet);
   }
+  return `https://docs.google.com/spreadsheets/d/${fileId}/edit`;
 }
 
 /**
@@ -1076,8 +1077,11 @@ function mailMerge(
     var ui = SpreadsheetApp.getUi();
   }
   try {
-    validateSpreadsheetUrl_(config.SPREADSHEET_URL, localizedMessage);
-    let ss = SpreadsheetApp.openByUrl(config.SPREADSHEET_URL);
+    const validatedUrl = validateSpreadsheetUrl_(
+      config.SPREADSHEET_URL,
+      localizedMessage,
+    );
+    let ss = SpreadsheetApp.openByUrl(validatedUrl);
     // Get data of field(s) to merge in form of 2d array
     let dataSheet = ss.getSheetByName(config.DATA_SHEET_NAME);
     if (dataSheet == null) {
